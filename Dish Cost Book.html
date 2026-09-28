@@ -1,0 +1,982 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Dish Cost Book</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F2F5F1; --surface:#FFFFFF; --surface2:#E8EEE7; --ink:#16211B; --muted:#5B6A61; --line:#D3DCD4;
+  --accent:#0E6A4E; --accent-ink:#FFFFFF; --accent-soft:#DCEBE4; --saffron:#9A6200; --saffron-soft:#FBF0D3;
+  --good:#0ca30c; --warn:#fab219; --bad:#d03b3b; --input:#FFFBE8; --input-line:#E2CF86; --shadow:0 12px 40px rgba(16,33,25,.18);
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101714; --surface:#18211D; --surface2:#212C27; --ink:#E4EBE6; --muted:#93A299; --line:#2D3A34;
+    --accent:#5BC59C; --accent-ink:#0B1511; --accent-soft:#1D3A2F; --saffron:#E3AE45; --saffron-soft:#33290F;
+    --input:#2A291A; --input-line:#5E5526; --shadow:0 12px 40px rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101714; --surface:#18211D; --surface2:#212C27; --ink:#E4EBE6; --muted:#93A299; --line:#2D3A34;
+  --accent:#5BC59C; --accent-ink:#0B1511; --accent-soft:#1D3A2F; --saffron:#E3AE45; --saffron-soft:#33290F;
+  --input:#2A291A; --input-line:#5E5526; --shadow:0 12px 40px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.muted{color:var(--muted)}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:16px}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:6px 20px;padding-block:10px}
+.brand{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.01em;margin:0}
+.brand small{display:block;font-family:var(--body);font-weight:400;font-size:12px;color:var(--muted);letter-spacing:0}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.batchsel{display:flex;gap:2px;align-items:center;margin-left:auto;border:1px solid var(--line);border-radius:8px;padding:3px 3px 3px 10px;background:var(--surface)}
+.batchsel span{font-size:12px;color:var(--muted);margin-right:6px;text-transform:uppercase;letter-spacing:.06em}
+.batchsel button{border:0;background:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:var(--mono);font-weight:500}
+.batchsel button[aria-pressed="true"]{background:var(--saffron);color:#fff}
+.batchsel button:hover{background:var(--surface2)} .batchsel button[aria-pressed="true"]:hover{background:var(--saffron)}
+@media (max-width:900px){.batchsel{margin-left:0}}
+.tab{background:none;border:0;padding:8px 12px;border-radius:6px;cursor:pointer;color:var(--muted);font-weight:500}
+.tab:hover{color:var(--ink);background:var(--surface2)}
+.tab[aria-selected="true"]{color:var(--accent-ink);background:var(--accent)}
+.banner{background:var(--saffron-soft);color:var(--ink);border-bottom:1px solid var(--line);font-size:13px}
+.banner .wrap{padding-block:8px}
+
+main.wrap{padding-block:18px 60px;display:flex;flex-direction:column;gap:16px}
+h2{font-family:var(--display);font-weight:700;font-size:22px;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h3{font-family:var(--display);font-weight:500;font-size:16px;margin:0}
+.lede{color:var(--muted);max-width:68ch;margin:4px 0 0}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.kpi{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:2px;box-shadow:1px 0 0 var(--line),0 1px 0 var(--line)}
+.kpi b{font-family:var(--mono);font-weight:500;font-size:22px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi em{font-style:normal;font-size:12px;color:var(--muted)}
+
+/* toolbar */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.toolbar input[type=search],.toolbar select,.field input,.field select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 10px;min-height:36px}
+.toolbar input[type=search]{flex:1 1 220px;min-width:0}
+.toolbar select{flex:0 1 auto;max-width:100%}
+.check{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);border-radius:999px;padding:4px 6px 4px 12px;font-size:13px}
+.chip button{border:0;background:none;cursor:pointer;border-radius:50%;width:22px;height:22px;line-height:1}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 14px;min-height:36px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+label.btn{display:inline-flex;align-items:center;cursor:pointer} .btn.disabled{opacity:.5;cursor:progress}
+.link{background:none;border:0;padding:0;color:inherit;cursor:pointer;text-align:left;font-weight:500;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.link:hover{text-decoration-color:var(--accent);color:var(--accent)}
+
+/* tables */
+.tablebox{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500;text-align:left;padding:10px 10px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface);position:sticky;top:0}
+th.num{text-align:right}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--surface2)}
+td .sub{font-size:12px;color:var(--muted);margin-top:1px}
+.thumb{width:52px;height:52px;min-width:52px;max-width:none;max-height:none;border-radius:9px;object-fit:cover;background:var(--surface2);display:block;flex:none}
+.thumb.ph{display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:18px;color:var(--muted);border:1px dashed var(--line);box-sizing:border-box}
+td.thumbcell{width:64px;min-width:64px;padding-right:0}
+td.thumbcell button{display:block;width:52px;height:52px;padding:0;margin:0;border:0;background:none;cursor:pointer;line-height:0}
+.dishrow{display:flex;gap:10px;align-items:flex-start}
+.hero{width:100%;border-radius:12px;overflow:hidden;background:var(--surface2);border:1px solid var(--line)}
+.hero .pic{position:relative;width:100%;aspect-ratio:16/9;max-height:320px;background:var(--surface2);overflow:hidden}
+.hero .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.hero .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;color:var(--muted);font-size:14px}
+@supports not (aspect-ratio:16/9){.hero .pic{height:240px}}
+.hero .tools{display:flex;gap:6px;flex-wrap:wrap;padding:8px;background:var(--surface);border-top:1px solid var(--line)}
+.hero .tools .tag{align-self:center}
+@media (max-width:900px){td.thumbcell{width:50px;min-width:50px;padding-left:6px} .thumb{width:40px;height:40px;min-width:40px;border-radius:7px} td.thumbcell button{width:40px;height:40px} .thumb.ph{font-size:14px}}
+tr.subrec td:first-child{box-shadow:inset 3px 0 0 var(--accent-soft)}
+input.cell{width:84px;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;background:var(--input);border:1px solid var(--input-line);border-radius:5px;padding:5px 8px}
+input.cell.plain{background:var(--surface);border-color:var(--line)}
+input.cell.set{background:var(--surface);border-color:var(--ink);font-weight:700}
+input.cell:disabled{opacity:.6}
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:13px;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--muted)}
+.dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+.pill small{font-family:var(--body);color:var(--muted);font-size:11px}
+.tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--muted);white-space:nowrap}
+.tag.attn{border-color:var(--saffron);color:var(--saffron)}
+.tag a{color:inherit;text-decoration:underline} .hero .tools .tag{white-space:normal}
+.bar{height:8px;border-radius:0 4px 4px 0;background:var(--accent);min-width:2px}
+.barcell{min-width:120px}
+.up{color:var(--bad)} .down{color:var(--good)}
+.empty{padding:40px 16px;text-align:center;color:var(--muted)}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,20,15,.45);z-index:30}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);background:var(--bg);z-index:31;box-shadow:var(--shadow);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer header{display:flex;gap:12px;align-items:flex-start;padding:16px;border-bottom:1px solid var(--line)}
+.drawer header div{flex:1;min-width:0}
+.drawer .body{overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+.drawer .body>*{flex:none}
+.nowrap{white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stat{background:var(--surface);padding:10px 12px;box-shadow:1px 0 0 var(--line),0 1px 0 var(--line)}
+.stat span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.stat b{font-family:var(--mono);font-weight:500;font-size:16px}
+.stat.hero{background:var(--accent-soft)}
+.needs{font-family:var(--body);font-weight:400;font-size:12px;color:var(--saffron)}
+tr.total td{border-top:2px solid var(--line);background:var(--surface2)}
+td.dishcell{min-width:200px}
+@media (max-width:900px){td.dishcell{min-width:150px}}
+tbody tr.total:hover td{background:var(--surface2)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;color:var(--muted)}
+.field input{font-family:var(--mono);width:100%}
+.field input.sell{background:var(--input);border-color:var(--input-line)}
+.field small{color:var(--muted);font-size:11px}
+.flags{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.flags li{background:var(--saffron-soft);border-radius:6px;padding:8px 10px;font-size:13px}
+.note{font-size:12px;color:var(--muted)}
+.note.warn{color:var(--saffron)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.steps{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.steps b{color:var(--ink)}
+textarea{width:100%;min-height:110px;font-family:var(--mono);font-size:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:50;max-width:90%;box-shadow:var(--shadow)}
+@media (max-width:1240px){.hide-md{display:none} td,th{padding:9px 9px} td.dishcell{min-width:200px} input.cell{width:84px}}
+@media (max-width:900px){.hide-sm{display:none} input.cell{width:78px} td,th{padding:8px 8px} td.dishcell{min-width:150px} .tabs{margin-left:0}}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out} @keyframes slide{from{transform:translateX(24px);opacity:.6}to{transform:none;opacity:1}}}
+</style>
+<header class="top"><div class="wrap">
+  <h1 class="brand">Dish Cost Book<small id="brandsub">Loading costing data</small></h1>
+  <div class="batchsel" id="batchsel" role="group" aria-label="Batch size"></div>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" data-tab="dishes" aria-selected="true">Dishes</button>
+    <button class="tab" role="tab" data-tab="compare" aria-selected="false">Compare</button>
+    <button class="tab" role="tab" data-tab="prices" aria-selected="false">Prices</button>
+    <button class="tab" role="tab" data-tab="update" aria-selected="false">Update prices</button>
+    <button class="tab" role="tab" data-tab="settings" aria-selected="false">Settings</button>
+  </nav>
+</div></header>
+<div class="banner" id="banner" hidden><div class="wrap" id="bannertext"></div></div>
+<main class="wrap" id="view"><div class="empty">Loading dishes and prices</div></main>
+<div id="drawerhost"></div>
+<div id="toasthost" aria-live="polite"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* Costing engine: pure functions, no DOM. Same maths as the verified spreadsheet. */
+function normName(s) {
+  return String(s == null ? "" : s).replace(/ /g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+/* How many price-units one recipe-unit is worth. Never guesses a density. */
+function lineFactor(lineUnit, price, settings) {
+  var pu = price.unit;
+  if (lineUnit === pu) return { f: 1, mismatch: false, how: "" };
+  if (lineUnit === "g" && pu === "pc") {
+    return { f: 1 / settings.eggG, mismatch: false, how: "g to pieces at " + settings.eggG + " g each" };
+  }
+  if (lineUnit === "pc" && pu === "g") {
+    return { f: settings.eggG, mismatch: false, how: "pieces to g at " + settings.eggG + " g each" };
+  }
+  var d = price.density;
+  if (d && lineUnit === "g" && pu === "ml") return { f: 1 / d, mismatch: false, how: "g to ml at " + d + " g/ml" };
+  if (d && lineUnit === "ml" && pu === "g") return { f: d, mismatch: false, how: "ml to g at " + d + " g/ml" };
+  return { f: 1, mismatch: true, how: "recipe in " + lineUnit + ", price per " + pu + ", no density on file: treated 1:1" };
+}
+
+/* prices: {pid: {name, unit, price, density?}}, dishes: {id: dishDoc}, settings: {...} */
+function costAll(prices, dishes, settings) {
+  var memo = {};
+  function cost(id, stack) {
+    if (memo[id]) return memo[id];
+    var d = dishes[id];
+    if (!d) return null;
+    stack = stack || [];
+    if (stack.indexOf(id) >= 0) return null; // circular sub-recipe
+    var ing = 0, rawYield = 0, missing = [], mismatch = 0, lines = [];
+    (d.lines || []).forEach(function (l) {
+      var q = Number(l.q) || 0, unitPrice = null, f = 1, how = "", c = null, priceUnit = "g", label = "";
+      rawYield += q;
+      if (l.sub) {
+        var s = cost(l.sub, stack.concat([id]));
+        if (s && s.perG != null) { unitPrice = s.perG; label = dishes[l.sub].name; if (s.missing.length) missing.push(l.n + " (sub-recipe incomplete)"); }
+        else missing.push(l.n);
+      } else {
+        var p = prices[l.p];
+        if (p && typeof p.price === "number") {
+          var ff = lineFactor(l.u, p, settings);
+          f = ff.f; how = ff.how; if (ff.mismatch) mismatch++;
+          unitPrice = p.price; priceUnit = p.unit; label = p.name;
+        } else missing.push(l.n);
+      }
+      if (unitPrice != null) { c = q * f * unitPrice; ing += c; }
+      lines.push({ cost: c, unitPrice: unitPrice, priceUnit: priceUnit, factor: f, how: how, label: label });
+    });
+    var yieldG = Number(d.yieldOverride) > 0 ? Number(d.yieldOverride) : rawYield;
+    var portion = Number(d.portion) > 0 ? Number(d.portion) : null;
+    var perG = yieldG > 0 ? ing / yieldG : null;
+    var perPortion = perG != null && portion ? perG * portion : null;
+    /* Served-with add-ons, costed per portion (not part of the batch). Rice is stored as cooked grams and
+       converted to raw at settings.riceRatio (Master note: 1 g raw = 3 g cooked). */
+    var sides = d.sides;
+    if (!sides && d.rice) sides = [{ kind: "rice", p: d.rice, cooked: (settings.riceG || 20) * (settings.riceRatio || 3) }];
+    var rice = 0, addons = 0, sideOut = [];
+    (sides || []).forEach(function (s) {
+      var q, up = null, lab = s.label || "", su = s.u || "g", how = "";
+      if (s.kind === "rice") { q = (Number(s.cooked) || 0) / (settings.riceRatio || 3); var rp = prices[s.p]; if (rp) { up = rp.price; lab = rp.name; } else missing.push("rice"); }
+      else if (s.sub) { var ss = cost(s.sub, stack.concat([id])); q = Number(s.q) || 0; if (ss && ss.perG != null) { up = ss.perG; lab = lab || dishes[s.sub].name; } else missing.push(lab || s.sub); }
+      else { var sp = prices[s.p]; q = Number(s.q) || 0; if (sp) { var sf = lineFactor(su, sp, settings); up = sp.price * sf.f; how = sf.how; lab = lab || sp.name; if (sf.mismatch) mismatch++; } else missing.push(lab || "add-on"); }
+      var sc = up != null ? q * up : null;
+      if (sc != null) { if (s.kind === "rice") rice += sc; else addons += sc; }
+      sideOut.push({ kind: s.kind || "addon", label: lab, q: q, u: s.kind === "rice" ? "g raw" : su, cooked: s.cooked, cost: sc, how: how });
+    });
+    var total = perPortion != null ? perPortion + rice + addons : null;
+    /* Waste/spoilage and overhead: applied one after the other on the ingredient cost (settings), else the dish's own loading. */
+    var wasteP = typeof settings.wastePct === "number" ? settings.wastePct : null, ohP = typeof settings.overheadPct === "number" ? settings.overheadPct : null;
+    var loading = wasteP != null && ohP != null ? (1 + wasteP) * (1 + ohP) - 1 : (typeof d.loading === "number" ? d.loading : 0.6);
+    var waste = total != null && wasteP != null ? total * wasteP : null;
+    var overhead = total != null && wasteP != null && ohP != null ? (total + waste) * ohP : null;
+    var loaded = total != null ? total * (1 + loading) : null;
+    var tFc = settings.targetFc || 0.15, rnd = settings.priceRound || 1;
+    var suggested = loaded != null && tFc > 0 ? Math.ceil(loaded / tFc / rnd) * rnd : null;
+    /* Selling price: the dish's own price when one is typed, otherwise the suggested price (so food cost % always reads). */
+    var sellSet = Number(d.sell) > 0 ? Number(d.sell) : null;
+    var sell = sellSet != null ? sellSet : suggested;
+    var net = sell ? (settings.vatIncluded ? sell / (1 + settings.vatRate) : sell) : null;
+    var r = {
+      id: id, ing: ing, rawYield: rawYield, yieldG: yieldG, portion: portion,
+      portions: portion && yieldG ? yieldG / portion : null,
+      perG: perG, perPortion: perPortion, rice: rice, addons: addons, sides: sideOut, total: total, loaded: loaded, waste: waste, overhead: overhead, loading: loading, suggested: suggested,
+      sell: sell, sellSet: sellSet, sellDefault: sellSet == null, net: net,
+      fc: net && total != null ? total / net : null,
+      fcLoaded: net && loaded != null ? loaded / net : null,
+      gp: net && total != null ? net - total : null,
+      gm: net && total != null ? (net - total) / net : null,
+      gmLoaded: net && loaded != null ? (net - loaded) / net : null,
+      perPiece: d.pieces && total != null ? total / d.pieces : null,
+      lines: lines, missing: missing, mismatch: mismatch
+    };
+    memo[id] = r;
+    return r;
+  }
+  Object.keys(dishes).forEach(function (id) { cost(id); });
+  return memo;
+}
+
+/* Read a pack-size / unit cell from a supplier sheet into {unit, qty}: how many g, ml or pieces one list price buys.
+   Understands "kg", "g", "ml", "L", "pcs", "Bot/700ml", "Box/1000ml", "Tray/24can", "Pack/12Bot.", "Tank/20L", "Can/565g",
+   "1L x 12", "970ml x 3", "5kg/box", "per/800g", "30pcs/tray". Returns null when it cannot tell, so the caller can flag it. */
+var OZ_BOTTLE = { "12": 350, "23": 700, "25": 750, "30": 1000, "33": 1000 };
+function parsePack(text) {
+  var t = normName(text).replace(/\.$/, "");
+  if (!t || t === "g" || t === "gram" || t === "grams") return { unit: "g", qty: 1 };
+  if (t === "ml") return { unit: "ml", qty: 1 };
+  if (t === "kg" || t === "per/kg" || t === "per kg" || t === "1 kg" || t === "1kg") return { unit: "g", qty: 1000 };
+  if (/^(l|litre|liter|ltr|1 ?l|per\/l)$/.test(t)) return { unit: "ml", qty: 1000 };
+  if (/^(pc|pcs|piece|pieces|each|ea|per\/pc|per\/pcs)$/.test(t)) return { unit: "pc", qty: 1 };
+  var one = function (n, u) {
+    n = parseFloat(n);
+    if (u === "ml") return { unit: "ml", qty: n };
+    if (/^(l|litr|liter|litre|ltr)$/.test(u)) return { unit: "ml", qty: n * 1000 };
+    if (u === "cl") return { unit: "ml", qty: n * 10 };
+    if (u === "g") return { unit: "g", qty: n };
+    if (u === "kg") return { unit: "g", qty: n * 1000 };
+    if (u === "oz") { var k = String(n); return { unit: "ml", qty: OZ_BOTTLE[k] || n * 29.5735, oz: k }; }
+    if (/^(can|cans|bot|bots|bottle|bottles|pc|pcs|piece|pieces|bag|bags|sachet|sachets)$/.test(u)) return { unit: "pc", qty: n };
+    return null;
+  };
+  var U = "(ml|l|litr|liter|litre|ltr|cl|g|kg|oz|cans?|bots?|bottles?|pcs?|pieces?|bags?|sachets?)";
+  var m = t.match(new RegExp("^([\\d.]+)\\s*" + U + "\\s*x\\s*([\\d.]+)$")) || t.match(new RegExp("^([\\d.]+)\\s*x\\s*([\\d.]+)\\s*" + U + "$"));
+  if (m) { var a = /^[\d.]+$/.test(m[3]) ? one(m[1], m[2]) : one(m[2], m[3]); var mult = parseFloat(/^[\d.]+$/.test(m[3]) ? m[3] : m[1]); if (a) { a.qty *= mult; return a; } return null; }
+  m = t.match(new RegExp("^(?:[a-z]+\\s*\\/\\s*|per\\s*\\/?\\s*)?([\\d.]+)\\s*" + U + "(?:\\s*\\/\\s*[a-z]+)?$"));
+  if (m) return one(m[1], m[2]);
+  return null;
+}
+
+/* Turn a price cell + unit text from an uploaded sheet into {unit, price-per-unit}; null when the pack cannot be read. */
+function parseSheetUnit(unitText, price, basis) {
+  var p = Number(price);
+  if (!isFinite(p)) return null;
+  var u = normName(unitText);
+  if (basis === "perKg") {
+    if (/^(pc|pcs|piece|pieces|each|ea)$/.test(u)) return { unit: "pc", price: p };
+    return { unit: /^(ml|l|litre|liter|ltr)$/.test(u) ? "ml" : "g", price: p / 1000 };
+  }
+  var pk = parsePack(unitText);
+  if (!pk) return null;
+  return { unit: pk.unit, price: p / pk.qty, note: pk.oz ? pk.oz + " oz read as " + pk.qty + " ml" : "" };
+}
+
+if (typeof module !== "undefined") module.exports = { normName: normName, lineFactor: lineFactor, costAll: costAll, parseSheetUnit: parseSheetUnit, parsePack: parsePack };
+
+(function () {
+  "use strict";
+  var NSHARD = 8;
+  var S = {
+    tab: "dishes", db: null, user: null, dl: null, uid: null, canWrite: true,
+    prices: {}, shardOf: {}, dishes: {}, updates: [], costs: {}, usedIn: {},
+    settings: { vatRate: 0.07, vatIncluded: false, riceG: 20, riceRatio: 3, eggG: 65.6667, targetFc: 0.15, wastePct: 0.3, overheadPct: 0.3, priceRound: 5, batchSizes: [5, 10, 15], currency: "THB" },
+    batch: null, asWritten: false, assets: null, uploading: false,
+    got: { prices: false, dishes: false },
+    f: { q: "", menu: "", cuisine: "", type: "Dish", attn: false, sort: "name", ing: "" },
+    pf: { q: "", show: "all" }, cmp: "cuisine",
+    detail: null, edit: null, wiz: { step: 1 }, queues: {}
+  };
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function n2(x, dp) { return x == null || !isFinite(x) ? "–" : Number(x).toLocaleString("en-US", { minimumFractionDigits: dp == null ? 2 : dp, maximumFractionDigits: dp == null ? 2 : dp }); }
+  function pct(x, dp) { return x == null || !isFinite(x) ? "–" : (x * 100).toFixed(dp == null ? 1 : dp) + "%"; }
+  function today() { return new Date().toISOString().slice(0, 10); }
+  function toast(msg) { var h = $("toasthost"); h.innerHTML = '<div class="toast">' + esc(msg) + "</div>"; clearTimeout(toast.t); toast.t = setTimeout(function () { h.innerHTML = ""; }, 3800); }
+  function parseNum(v) { var s = String(v == null ? "" : v).replace(/,/g, "").trim(); if (s === "") return null; var x = Number(s); return isFinite(x) ? x : NaN; }
+  function perKg(p) { return typeof p.price !== "number" ? null : p.unit === "pc" ? p.price : p.price * 1000; }
+  function cur() { return ({ THB: "\u0E3F", USD: "$", EUR: "\u20AC", GBP: "\u00A3", INR: "\u20B9" })[S.settings.currency] || (S.settings.currency + " "); }
+  function money(x, dp) { return x == null || !isFinite(x) ? "\u2013" : cur() + n2(x, dp); }
+  function unitLabel(u) { return u === "pc" ? "per piece" : u === "ml" ? "per L" : "per kg"; }
+  function dis() { return S.canWrite ? "" : " disabled"; }
+
+  /* ---------- data ---------- */
+  function recompute() {
+    S.costs = costAll(S.prices, S.dishes, S.settings);
+    var used = {};
+    Object.keys(S.dishes).forEach(function (id) {
+      (S.dishes[id].lines || []).forEach(function (l) { var k = l.sub ? "SUB:" + l.sub : l.p; if (!k) return; (used[k] = used[k] || {})[id] = 1; });
+    });
+    S.usedIn = used;
+  }
+  function enqueue(path, fn) {
+    var prev = S.queues[path] || Promise.resolve();
+    var next = prev.then(fn, fn);
+    S.queues[path] = next.catch(function () {});
+    return next;
+  }
+  function writeErr(e) {
+    var code = e && e.code;
+    if (code === "invalid_argument") { S.canWrite = false; toast("You have view-only access, so that change was not saved."); render(); }
+    else if (code === "quota_exceeded") toast("The database is full. Remove old dishes or update logs, then try again.");
+    else toast("Could not save just now. Check your connection and try again.");
+  }
+  function imgUrl(d) { return d && d.img ? "/_blob/" + d.img : null; }
+  function thumb(d, cls) {
+    var u = imgUrl(d);
+    if (u) return '<img class="thumb ' + (cls || "") + '" src="' + esc(u) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;thumb ph&quot;>' + esc((d.cuisine || "?").charAt(0)) + '</div>\'">';
+    return '<div class="thumb ph ' + (cls || "") + '" title="No photo yet">' + esc((d.cuisine || "?").charAt(0)) + "</div>";
+  }
+  function imgTag(d) {
+    if (d.imgKind === "ai") return '<span class="tag">AI stand-in image, not the real plate</span>';
+    if (d.imgKind === "photo") return '<span class="tag">kitchen photo</span>';
+    if (d.imgKind === "web") { var c = d.imgCredit || {}; return '<span class="tag">Reference photo' + (c.site ? ": " + (c.page ? '<a href="' + esc(c.page) + '" target="_blank" rel="noopener">' + esc(c.site) + "</a>" : esc(c.site)) : "") + " \u2014 replace with your own plate when ready</span>"; }
+    return "";
+  }
+  function shrink(file, max, q) {
+    return new Promise(function (res, rej) {
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function () {
+        var w = img.naturalWidth, hh = img.naturalHeight, k = Math.min(1, max / Math.max(w, hh));
+        var cv = document.createElement("canvas"); cv.width = Math.round(w * k); cv.height = Math.round(hh * k);
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+        cv.toBlob(function (b) { b ? res(b) : rej(new Error("encode")); }, "image/jpeg", q);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error("decode")); };
+      img.src = url;
+    });
+  }
+  function assetErr(e) {
+    var c = e && e.code;
+    if (c === "too_large") toast("That photo is too big even after shrinking. Try a smaller one.");
+    else if (c === "quota_or_state") toast("Photo storage is full. Remove some photos first.");
+    else if (c === "unsupported_type") toast("That file type is not supported. Use a JPG, PNG or WebP photo.");
+    else if (c === "not_granted" || c === "capability_disabled") { S.assets = null; toast("Photos cannot be added from this view."); render(); }
+    else toast("Could not upload the photo. Check your connection and try again.");
+  }
+  function addPhoto(id, file) {
+    if (!S.assets || !file || S.uploading) return;
+    S.uploading = true; render();
+    shrink(file, 1200, 0.82).catch(function () { return file; }).then(function (blob) {
+      return S.assets.upload(blob, { type: blob.type || "image/jpeg" });
+    }).then(function (r) {
+      var old = S.dishes[id] && S.dishes[id].img;
+      return updDish(id, { img: r.id, imgKind: "photo", imgAt: new Date().toISOString() }).then(function () { if (old && old !== r.id) return S.assets.delete(old).catch(function () {}); });
+    }).then(function () { toast("Photo saved"); }, assetErr).then(function () { S.uploading = false; render(); });
+  }
+  function removePhoto(id) {
+    var d = S.dishes[id]; if (!d || !d.img) return;
+    if (!confirm("Remove this photo from " + d.name + "?")) return;
+    var old = d.img;
+    updDish(id, { img: null, imgKind: null }).then(function () { if (S.assets) return S.assets.delete(old).catch(function () {}); }).then(function () { toast("Photo removed"); });
+  }
+  function updDish(id, patch) {
+    if (!S.db) return Promise.resolve();
+    patch.editedAt = new Date().toISOString(); if (S.uid) patch.editedBy = S.uid;
+    return enqueue("dishes/" + id, function () { return S.db.doc("dishes/" + id).update(patch); }).catch(writeErr);
+  }
+  function updPrices(byShard) {
+    return Promise.all(Object.keys(byShard).map(function (sh) {
+      return enqueue("prices/" + sh, function () {
+        var ref = S.db.doc("prices/" + sh);
+        return ref.update({ items: byShard[sh] }).catch(function (e) { if (e && e.code === "invalid_argument") return ref.set({ items: byShard[sh] }); throw e; });
+      });
+    }));
+  }
+  function shardFor(pid) { return S.shardOf[pid] || "s" + (parseInt(pid.slice(1), 10) % NSHARD); }
+  function nextPid(extra) {
+    var m = 0; Object.keys(S.prices).forEach(function (k) { m = Math.max(m, parseInt(k.slice(1), 10) || 0); });
+    return "p" + String(m + 1 + (extra || 0)).padStart(3, "0");
+  }
+
+  /* ---------- render plumbing ---------- */
+  function batchList() { return (S.settings.batchSizes && S.settings.batchSizes.length ? S.settings.batchSizes : [5, 10, 15]).slice(); }
+  function curBatch() { var bl = batchList(); if (S.batch == null) { var sv = null; try { sv = +localStorage.getItem("dcb-batch"); } catch (x) {} S.batch = bl.indexOf(sv) >= 0 ? sv : bl[0]; } if (bl.indexOf(S.batch) < 0) S.batch = bl[0]; return S.batch; }
+  function bfOf(c) { var b = curBatch(); return c && c.yieldG > 0 ? b * 1000 / c.yieldG : 1; }
+  function renderBatchSel() {
+    var b = curBatch(), el = $("batchsel");
+    el.innerHTML = "<span>Batch</span>" + batchList().map(function (x) { return '<button type="button" data-setbatch="' + esc(x) + '" aria-pressed="' + (x === b ? "true" : "false") + '">' + esc(x) + " L</button>"; }).join("");
+  }
+  function render() {
+    renderBatchSel();
+    var ae = document.activeElement, keep = null;
+    if (ae && ae.id && /INPUT|SELECT|TEXTAREA/.test(ae.tagName)) {
+      keep = { id: ae.id, v: ae.value, dirty: ae.value !== ae.defaultValue && ae.type !== "checkbox", s: null, e: null };
+      try { keep.s = ae.selectionStart; keep.e = ae.selectionEnd; } catch (x) {}
+    }
+    var body = document.querySelector(".drawer .body"), st = body ? body.scrollTop : 0;
+    document.querySelectorAll(".tab").forEach(function (t) { t.setAttribute("aria-selected", t.dataset.tab === S.tab ? "true" : "false"); });
+    var nD = Object.keys(S.dishes).length, nP = Object.keys(S.prices).length, nSub = Object.keys(S.dishes).filter(function (k) { return S.dishes[k].type === "Sub-recipe"; }).length;
+    $("brandsub").textContent = S.db === null && S.noDb ? "Open inside Claude to load data" : nD ? (nD - nSub) + " dishes · " + nSub + " batches · " + nP + " prices · " + S.settings.currency : "Loading costing data";
+    var v = $("view");
+    if (S.noDb) v.innerHTML = '<div class="empty"><h2>Open this page inside Claude</h2><p>The dishes and prices live in this page’s shared database, which is only available when the page is opened from Claude by someone in your organisation.</p></div>';
+    else if (!S.got.prices || !S.got.dishes) v.innerHTML = '<div class="empty">Loading dishes and prices</div>';
+    else if (!nD) v.innerHTML = '<div class="empty"><h2>No dishes loaded yet</h2><p>Send your recipe workbook to Claude in chat and it will be checked and loaded here.</p></div>';
+    else v.innerHTML = ({ dishes: vDishes, compare: vCompare, prices: vPrices, update: vUpdate, settings: vSettings })[S.tab]();
+    renderDrawer();
+    var b2 = document.querySelector(".drawer .body"); if (b2) b2.scrollTop = st;
+    if (keep) { var el = $(keep.id); if (el) { if (keep.dirty) el.value = keep.v; el.focus(); try { if (keep.s != null) el.setSelectionRange(keep.s, keep.e); } catch (x) {} } }
+    fillNames();
+  }
+  function fillNames() {
+    if (!S.user) return;
+    var els = document.querySelectorAll("[data-uid]"), ids = [];
+    els.forEach(function (e) { if (ids.indexOf(e.dataset.uid) < 0) ids.push(e.dataset.uid); });
+    if (!ids.length) return;
+    S.user.profiles(ids).then(function (ps) { els.forEach(function (e) { var p = ps[e.dataset.uid]; e.textContent = (p && p.name) || "Someone"; }); }).catch(function () {});
+  }
+
+  /* ---------- dishes ---------- */
+  function fcPill(c) {
+    if (!c || c.fcLoaded == null) return '<span class="muted" title="Needs a complete cost and a selling price">\u2013</span>';
+    var t = S.settings.targetFc, cls = c.fcLoaded <= t ? "good" : c.fcLoaded <= t + 0.03 ? "warn" : "bad", lab = cls === "good" ? "on target" : cls === "warn" ? "watch" : "over";
+    return '<span class="pill" title="Ingredient-only: ' + pct(c.fc) + '"><i class="dot ' + cls + '"></i>' + pct(c.fcLoaded) + " <small>" + lab + "</small></span>";
+  }
+  function dishAttn(d, c) {
+    var n = (d.flags || []).length; if (c && c.missing.length) n++;
+    (d.lines || []).forEach(function (l) { var p = S.prices[l.p]; if (p && p.check) n++; });
+    return n;
+  }
+  function filtered() {
+    var f = S.f, q = normName(f.q), out = [];
+    Object.keys(S.dishes).forEach(function (id) {
+      var d = S.dishes[id], c = S.costs[id];
+      if (f.type && d.type !== f.type) return;
+      if (f.menu && d.menu !== f.menu) return;
+      if (f.cuisine && d.cuisine !== f.cuisine) return;
+      if (f.ing && !(S.usedIn[f.ing] && S.usedIn[f.ing][id])) return;
+      if (f.attn && !dishAttn(d, c)) return;
+      if (q) {
+        var hay = normName(d.name + " " + d.cuisine + " " + d.id + " " + (d.lines || []).map(function (l) { return l.n; }).join(" "));
+        if (hay.indexOf(q) < 0) return;
+      }
+      out.push(d);
+    });
+    var key = { name: function (d) { return d.name.toLowerCase(); }, cost: function (d) { return -(S.costs[d.id].total || 0); }, batch: function (d) { var c = S.costs[d.id]; return -(c.ing * bfOf(c) || 0); }, fc: function (d) { var x = S.costs[d.id].fcLoaded; return x == null ? 1e9 : -x; }, gm: function (d) { var x = S.costs[d.id].gmLoaded; return x == null ? 1e9 : x; } }[f.sort];
+    out.sort(function (a, b) { var x = key(a), y = key(b); return x < y ? -1 : x > y ? 1 : 0; });
+    return out;
+  }
+  function opts(list, cur, all) { return '<option value="">' + esc(all) + "</option>" + list.map(function (x) { return '<option value="' + esc(x) + '"' + (x === cur ? " selected" : "") + ">" + esc(x) + "</option>"; }).join(""); }
+  function uniq(field) { var o = {}; Object.keys(S.dishes).forEach(function (id) { var v = S.dishes[id][field]; if (v) o[v] = 1; }); return Object.keys(o).sort(); }
+  function vDishes() {
+    var rows = filtered(), f = S.f, priced = 0, fcs = [], over = 0, sum = 0, lsum = 0, bsum = 0, B = curBatch();
+    var nDish = 0, ssum = 0;
+    rows.forEach(function (d) { var c = S.costs[d.id]; sum += c.total || 0; lsum += c.loaded || 0; bsum += c.ing * bfOf(c); if (d.type === "Dish") nDish++; if (c.sellSet != null) priced++; if (d.type === "Dish" && c.fcLoaded != null) { fcs.push(c.fcLoaded); ssum += c.sell || 0; if (c.fcLoaded > S.settings.targetFc + 0.0005) over++; } });
+    var chk = Object.keys(S.prices).filter(function (k) { return S.prices[k].check || typeof S.prices[k].price !== "number"; }).length;
+    var avgFc = fcs.length ? fcs.reduce(function (a, b) { return a + b; }, 0) / fcs.length : null;
+    var h = '<div class="kpis">' +
+      '<div class="kpi"><b>' + rows.length + "</b><span>" + (f.type === "Dish" ? "dishes" : f.type === "Sub-recipe" ? "batches" : "recipes") + " shown</span></div>" +
+      '<div class="kpi"><b>' + money(rows.length ? lsum / rows.length : null) + "</b><span>average loaded cost per portion</span></div>" +
+      '<div class="kpi"><b>' + money(rows.length ? sum / rows.length : null) + "</b><span>average ingredient cost per portion</span></div>" +
+      '<div class="kpi"><b>' + money(fcs.length ? ssum / fcs.length : null, 0) + "</b><span>average selling price" + (priced ? " (" + priced + " set by you)" : " (all at the " + pct(S.settings.targetFc, 0) + " suggestion)") + "</span></div>" +
+      '<div class="kpi"><b>' + pct(avgFc) + "</b><span>average food cost % (target " + pct(S.settings.targetFc, 0) + ")</span></div>" +
+      '<div class="kpi"><b>' + over + "</b><span>dishes priced above " + pct(S.settings.targetFc, 0) + " food cost</span></div>" +
+      '<div class="kpi"><b>' + chk + '</b><span>prices to check or enter <button class="link" data-act="goprices">review</button></span></div></div>';
+    h += '<div class="toolbar"><input type="search" id="f-q" placeholder="Search dish or ingredient" value="' + esc(f.q) + '" aria-label="Search dishes">' +
+      '<select id="f-menu" aria-label="Menu">' + opts(uniq("menu"), f.menu, "All menus") + "</select>" +
+      '<select id="f-cuisine" aria-label="Cuisine">' + opts(uniq("cuisine"), f.cuisine, "All cuisines") + "</select>" +
+      '<select id="f-type" aria-label="Type"><option value="Dish"' + (f.type === "Dish" ? " selected" : "") + '>Dishes</option><option value="Sub-recipe"' + (f.type === "Sub-recipe" ? " selected" : "") + '>Sub-recipes</option><option value=""' + (f.type === "" ? " selected" : "") + ">Everything</option></select>" +
+      '<select id="f-sort" aria-label="Sort"><option value="name"' + (f.sort === "name" ? " selected" : "") + '>Sort: name</option><option value="batch"' + (f.sort === "batch" ? " selected" : "") + '>Sort: highest loaded batch cost</option><option value="cost"' + (f.sort === "cost" ? " selected" : "") + '>Sort: highest loaded cost per portion</option><option value="fc"' + (f.sort === "fc" ? " selected" : "") + '>Sort: highest food cost %</option><option value="gm"' + (f.sort === "gm" ? " selected" : "") + ">Sort: lowest margin</option></select>" +
+      '<label class="check"><input type="checkbox" id="f-attn"' + (f.attn ? " checked" : "") + "> Needs attention</label>" +
+      (f.ing ? '<span class="chip">Uses ' + esc(f.ing.indexOf("SUB:") === 0 ? (S.dishes[f.ing.slice(4)] || {}).name : (S.prices[f.ing] || {}).name) + '<button data-act="clearing" aria-label="Clear ingredient filter">✕</button></span>' : "") + "</div>";
+    if (!rows.length) return h + '<div class="tablebox"><div class="empty">No recipes match these filters.</div></div>';
+    if (f.type !== "Sub-recipe") h += '<p class="lede">Every recipe is scaled to the batch size chosen at the top (' + esc(B) + ' L = ' + esc(B) + ' kg of raw ingredients). Loaded cost = ingredients +' + pct(S.settings.wastePct, 0) + ' waste, then +' + pct(S.settings.overheadPct, 0) + ' overhead. The yellow selling price starts at loaded cost \u00f7 ' + pct(S.settings.targetFc, 0) + ' food cost, rounded up to ' + esc(S.settings.priceRound) + '; change any price and its food cost % and margin follow, clear it to go back to the ' + pct(S.settings.targetFc, 0) + ' price.</p>';
+    h += '<div class="tablebox"><table><thead><tr><th class="thumbcell"></th><th>Dish</th><th class="num">' + esc(B) + ' L batch<br>loaded cost</th><th class="num hide-sm">' + esc(B) + ' L batch<br>ingredients only</th><th class="num">Portions<br>per batch</th><th class="num">Loaded cost /<br>portion</th><th class="num hide-sm">Ingredients /<br>portion</th><th class="num">Selling<br>price</th><th>Food<br>cost %</th><th class="num hide-sm hide-md">Margin after<br>loading</th></tr></thead><tbody>';
+    rows.forEach(function (d) {
+      var c = S.costs[d.id], a = dishAttn(d, c);
+      h += '<tr class="' + (d.type === "Sub-recipe" ? "subrec" : "") + '"><td class="thumbcell"><button type="button" data-act="open" data-id="' + esc(d.id) + '" aria-label="Open ' + esc(d.name) + '">' + thumb(d) + '</button></td><td class="dishcell"><button class="link" data-act="open" data-id="' + esc(d.id) + '">' + esc(d.name) + '</button><div class="sub">' + esc(d.cuisine) + " · " + esc(d.menu) + (c.sides && c.sides.length ? " · <b>+ " + esc(c.sides.map(function (x) { return x.kind === "rice" ? "rice " + n2(x.cooked, 0) + " g" : x.label + " " + n2(x.q, x.q % 1 ? 1 : 0) + " " + x.u; }).join(", ")) + "</b>" : "") + "</div></td>" +
+        '<td class="num"><b>' + money(c.ing * bfOf(c) * (1 + c.loading), 0) + "</b>" + (c.missing.length ? '<div><span class="tag attn">incomplete</span></div>' : "") + "</td>" +
+        '<td class="num hide-sm muted">' + money(c.ing * bfOf(c), 0) + "</td>" +
+        '<td class="num">' + n2(c.portions * bfOf(c), 0) + '<div class="sub">' + n2(d.portion, 0) + " g each</div></td>" +
+        '<td class="num"><b>' + money(c.loaded) + "</b></td>" +
+        '<td class="num hide-sm muted">' + money(c.total) + "</td>" +
+        '<td class="num">' + (d.type === "Dish" ? '<input class="cell' + (c.sellDefault ? "" : " set") + '" id="sell-' + esc(d.id) + '" data-sell="' + esc(d.id) + '" inputmode="decimal" aria-label="Selling price for ' + esc(d.name) + '" title="' + (c.sellDefault ? "Suggested at " + pct(S.settings.targetFc, 0) + " food cost - type your own price to change it" : "Your price (suggested " + money(c.suggested, 0) + "); clear it to go back to the suggestion") + '" value="' + (c.sell != null ? esc(c.sell) : "") + '"' + dis() + ">" + (c.sellDefault ? "" : '<div class="sub">suggested ' + money(c.suggested, 0) + "</div>") : '<span class="muted">' + money(c.perG ? c.perG * 1000 : null) + " /kg</span>") + "</td>" +
+        "<td>" + (d.type === "Dish" ? fcPill(c) : '<span class="tag">sub-recipe</span>') + "</td>" +
+        '<td class="num hide-sm hide-md">' + pct(c.gmLoaded) + (a ? '<div class="sub"><span class="tag attn">' + a + (a === 1 ? " flag" : " flags") + "</span></div>" : "") + "</td></tr>";
+    });
+    return h + "</tbody></table></div>";
+  }
+
+  /* ---------- drawer ---------- */
+  function renderDrawer() {
+    var host = $("drawerhost");
+    if (!S.detail || !S.dishes[S.detail]) { host.innerHTML = ""; return; }
+    var d = S.dishes[S.detail], c = S.costs[d.id], ed = S.edit && S.edit.id === d.id ? S.edit : null;
+    var h = '<div class="scrim" data-act="close"></div><aside class="drawer" role="dialog" aria-label="' + esc(d.name) + '"><header><div><h2>' + esc(d.name) + '</h2><div class="muted">' + esc(d.id) + " · " + esc(d.cuisine) + " · " + esc(d.menu) + " · " + esc(d.type) + '</div></div><button class="btn" data-act="close">Close</button></header><div class="body">';
+    var need = function (v, fmt) { return v != null ? fmt(v) : '<span class="needs">' + (d.type === "Dish" ? "enter selling price \u2193" : "n/a for sub-recipe") + "</span>"; };
+    var isDish = d.type === "Dish", sides = d.sides || [], hasSides = c.sides && c.sides.length > 0;
+    var sideNote = hasSides ? c.sides.map(function (x) { return x.kind === "rice" ? "rice " + n2(x.cooked, 0) + " g" : x.label + " " + n2(x.q, x.q % 1 ? 1 : 0) + " " + x.u; }).join(" + ") : "";
+    var B = curBatch(), bf = bfOf(c), iu = imgUrl(d);
+    h += '<div class="hero"><div class="pic">' + (iu ? '<img src="' + esc(iu) + '" alt="' + esc(d.name) + '" onerror="this.parentNode.innerHTML=\'<div class=&quot;ph&quot;>Photo missing</div>\'">' : '<div class="ph">No photo yet' + (S.assets ? " \u2014 add one from your phone or computer" : "") + "</div>") + "</div>" +
+      (S.assets && S.canWrite ? '<div class="tools"><label class="btn' + (S.uploading ? " disabled" : "") + '">' + (S.uploading ? "Uploading\u2026" : iu ? "Replace photo" : "Add photo") + '<input type="file" id="d-photo" accept="image/*" capture="environment" hidden' + (S.uploading ? " disabled" : "") + "></label>" +
+        (iu ? '<button class="btn" data-act="rmphoto">Remove</button>' : "") + imgTag(d) + "</div>" : (imgTag(d) ? '<div class="tools">' + imgTag(d) + "</div>" : "")) + "</div>";
+    h += "<h3>What it costs at a " + esc(B) + " L batch</h3>";
+    h += '<div class="stats"><div class="stat hero"><span>' + esc(B) + ' L batch loaded cost</span><b>' + money(c.ing * bf * (1 + c.loading)) + '</b></div>' +
+      '<div class="stat"><span>Ingredients only</span><b>' + money(c.ing * bf) + '</b></div>' +
+      '<div class="stat"><span>+ waste and spoilage ' + pct(S.settings.wastePct, 0) + '</span><b>' + money(c.ing * bf * (S.settings.wastePct || 0)) + '</b></div>' +
+      '<div class="stat"><span>+ overhead ' + pct(S.settings.overheadPct, 0) + '</span><b>' + money(c.ing * bf * (1 + (S.settings.wastePct || 0)) * (S.settings.overheadPct || 0)) + '</b></div>' +
+      '<div class="stat"><span>Portions per batch (' + n2(d.portion, 0) + ' g)</span><b>' + n2(c.portions * bf, 1) + '</b></div>' +
+      '<div class="stat"><span>Scale vs recipe as written</span><b>\u00d7 ' + n2(bf, 2) + '</b></div></div>';
+    h += "<h3>Per portion</h3>";
+    h += '<div class="stats"><div class="stat hero"><span>Loaded cost per portion' + (hasSides ? " incl. " + esc(sideNote) : "") + '</span><b>' + money(c.loaded) + '</b></div>' +
+      (isDish ? '<div class="stat hero"><span>Selling price' + (c.sellDefault ? " (suggested at " + pct(S.settings.targetFc, 0) + ")" : " (yours; suggested " + money(c.suggested, 0) + ")") + '</span><b>' + money(c.sell, 0) + '</b></div>' : "") +
+      '<div class="stat"><span>Ingredients per portion' + (hasSides ? " incl. " + esc(sideNote) : "") + '</span><b>' + money(c.total) + '</b></div>' +
+      (hasSides ? '<div class="stat"><span>Dish only (' + n2(d.portion, 0) + ' g)</span><b>' + money(c.perPortion) + '</b></div>' : "") +
+      (c.rice ? '<div class="stat"><span>Rice add-on</span><b>' + money(c.rice) + "</b></div>" : "") +
+      (c.addons ? '<div class="stat"><span>Other add-ons</span><b>' + money(c.addons) + "</b></div>" : "") +
+      '<div class="stat"><span>Waste + overhead per portion</span><b>' + money(c.loaded != null && c.total != null ? c.loaded - c.total : null) + '</b></div>' +
+      '<div class="stat"><span>Cost per kg</span><b>' + money(c.perG != null ? c.perG * 1000 : null) + '</b></div>' +
+      (d.pieces ? '<div class="stat"><span>Per piece (' + esc(d.pieces) + " pcs)</span><b>" + money(c.perPiece) + "</b></div>" : "") + "</div>";
+    h += '<p class="note">Recipe as written: ' + n2(c.yieldG, 0) + ' g of raw ingredients, ' + money(c.ing) + ', ' + n2(c.portions, 1) + ' portions. Batches are scaled by raw weight, 1 L = 1 kg. Cost per portion does not change with the batch size.</p>';
+    h += '<div class="fields">' +
+      '<div class="field"><label for="d-portion">Portion size (g)</label><input id="d-portion" data-dfield="portion" inputmode="decimal" value="' + esc(d.portion) + '"' + dis() + "><small>Dish cost per portion = batch cost ÷ yield × portion size</small></div>" +
+      '<div class="field"><label for="d-yield">Weighed cooked yield (g)</label><input id="d-yield" data-dfield="yieldOverride" inputmode="decimal" placeholder="' + n2(c.rawYield, 0) + '" value="' + (d.yieldOverride ? esc(d.yieldOverride) : "") + '"' + dis() + "><small>" + (d.yieldOverride ? "Overrides raw weight " + n2(c.rawYield, 0) + " g" : "Blank = sum of raw ingredient weights") + "</small></div>" +
+      "</div>";
+    if (isDish) {
+      var riceSide = null, others = [];
+      sides.forEach(function (x, i) { if (x.kind === "rice" && !riceSide) riceSide = { i: i, s: x }; else others.push({ i: i, s: x }); });
+      var riceOpts = Object.keys(S.prices).filter(function (k) { return /rice/i.test(S.prices[k].name) && !/flour|noodle|vinegar|stick|lotus|paper|kheer/i.test(S.prices[k].name); }).sort(function (a, b) { return S.prices[a].name.localeCompare(S.prices[b].name); });
+      h += "<h3>Served with (added per portion)</h3>";
+      h += '<div class="fields"><div class="field"><label for="d-rice">Rice</label><select id="d-rice"' + dis() + '><option value="">No rice</option>' + riceOpts.map(function (k) { return '<option value="' + esc(k) + '"' + (riceSide && riceSide.s.p === k ? " selected" : "") + ">" + esc(S.prices[k].name) + " (" + money(perKg(S.prices[k])) + "/kg raw)</option>"; }).join("") + "</select></div>" +
+        '<div class="field"><label for="d-ricecooked">Cooked rice per serve (g)</label><input id="d-ricecooked" inputmode="decimal" value="' + esc(riceSide ? riceSide.s.cooked : 60) + '"' + (riceSide && S.canWrite ? "" : " disabled") + "><small>" + (riceSide ? "= " + n2(riceSide.s.cooked / (S.settings.riceRatio || 3), 1) + " g raw at 1 : " + esc(S.settings.riceRatio || 3) + " · " + money(c.rice) : "1 g raw rice = " + esc(S.settings.riceRatio || 3) + " g cooked (Settings)") + "</small></div></div>";
+      if (others.length) {
+        h += '<div class="tablebox"><table><thead><tr><th>Add-on</th><th class="num">Per serve</th><th class="num">Cost</th>' + (S.canWrite ? "<th></th>" : "") + "</tr></thead><tbody>";
+        others.forEach(function (o) { var cs = c.sides[o.i] || {}; h += "<tr><td>" + esc(cs.label || o.s.label) + (o.s.sub ? ' <span class="tag">sub-recipe</span>' : "") + (cs.how ? '<div class="note">' + esc(cs.how) + "</div>" : "") + '</td><td class="num">' + n2(o.s.q, o.s.q % 1 ? 1 : 0) + " " + esc(o.s.u || "g") + '</td><td class="num">' + money(cs.cost) + "</td>" + (S.canWrite ? '<td><button class="btn danger" data-act="rmside" data-i="' + o.i + '">Remove</button></td>' : "") + "</tr>"; });
+        h += "</tbody></table></div>";
+      }
+      if (S.canWrite) h += '<div class="fields"><div class="field"><label for="ad-name">Add a sauce, side or garnish</label><input id="ad-name" list="sidenames" placeholder="ingredient or sub-recipe" style="font-family:var(--body)"><datalist id="sidenames">' + Object.keys(S.dishes).filter(function (k) { return S.dishes[k].type === "Sub-recipe"; }).map(function (k) { return '<option value="' + esc(S.dishes[k].name) + '">'; }).join("") + Object.keys(S.prices).map(function (k) { return '<option value="' + esc(S.prices[k].name) + '">'; }).join("") + '</datalist></div><div class="field"><label for="ad-qty">Per serve</label><input id="ad-qty" inputmode="decimal"></div><div class="field"><label for="ad-unit">Unit</label><select id="ad-unit"><option>g</option><option>ml</option><option>pc</option></select></div><div class="field"><label>&nbsp;</label><button class="btn" data-act="addside">Add per serve</button></div></div>';
+      h += "<h3>Selling price and margin</h3>";
+      h += '<div class="fields"><div class="field"><label for="d-sell">Selling price (' + (S.settings.vatIncluded ? "incl." : "ex") + ' VAT)</label><input class="sell" id="d-sell" data-dfield="sell" inputmode="decimal" placeholder="' + (c.suggested != null ? esc(c.suggested) : "") + '" value="' + (c.sell != null ? esc(c.sell) : "") + '"' + dis() + "><small>" + (c.sellDefault ? "Starts at the suggested price (loaded cost \u00f7 " + pct(S.settings.targetFc, 0) + "). Type your own to change it; clear it to go back." : "Your price. Suggested at " + pct(S.settings.targetFc, 0) + ": " + money(c.suggested, 0) + ". Clear the box to go back to it.") + (c.net && S.settings.vatIncluded ? " Net of VAT: " + money(c.net) : "") + "</small></div></div>";
+      if (c.fc != null) h += '<div class="stats"><div class="stat hero"><span>Loaded food cost % (target ' + pct(S.settings.targetFc, 0) + ')</span><b>' + pct(c.fcLoaded) + '</b></div><div class="stat"><span>Ingredient-only food cost %</span><b>' + pct(c.fc) + '</b></div><div class="stat"><span>Gross profit per portion (after loading)</span><b>' + money(c.net - c.loaded) + '</b></div><div class="stat"><span>Gross margin (after loading)</span><b>' + pct((c.net - c.loaded) / c.net) + "</b></div></div>";
+      else h += '';
+    }
+    if (c.missing.length) h += '<ul class="flags"><li><b>Cost is incomplete.</b> No price on file for: ' + esc(c.missing.join(", ")) + ". Add the price on the Prices tab.</li></ul>";
+
+    var BS = batchList();
+    h += "<h3>All batch sizes</h3>";
+    h += '<div class="tablebox"><table><thead><tr><th>Batch</th><th class="num">Scale</th><th class="num">Portions</th><th class="num">Loaded cost</th><th class="num">Ingredients only</th></tr></thead><tbody>';
+    BS.forEach(function (b) { var f = c.yieldG > 0 ? b * 1000 / c.yieldG : 1; h += '<tr' + (b === B ? ' style="font-weight:600"' : "") + "><td>" + esc(b) + ' L' + (b === B ? ' <span class="tag">selected</span>' : "") + '</td><td class="num">\u00d7 ' + n2(f, 2) + '</td><td class="num">' + n2(c.portions * f, 1) + '</td><td class="num">' + money(c.ing * f * (1 + c.loading)) + '</td><td class="num">' + money(c.ing * f) + "</td></tr>"; });
+    h += "</tbody></table></div>";
+    if (S.asWritten || ed) bf = 1;
+    h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="flex:1">Ingredients' + (bf !== 1 ? ' <span class="tag">' + esc(B) + " L batch, \u00d7 " + n2(bf, 2) + "</span>" : ' <span class="tag">recipe as written</span>') + '</h3>' + (!ed ? '<label class="check"><input type="checkbox" id="d-aswritten"' + (S.asWritten ? " checked" : "") + "> Show recipe as written</label>" : "") + (S.canWrite ? (ed ? '<button class="btn primary" data-act="saveedit">Save recipe</button><button class="btn" data-act="canceledit">Cancel</button>' : '<button class="btn" data-act="edit">Edit recipe</button>') : "") + "</div>";
+    h += '<div class="tablebox"><table><thead><tr><th>Ingredient</th><th class="num">Qty</th><th class="num hide-sm">Price used</th><th class="num">Cost</th><th class="num hide-sm">Share</th>' + (ed ? "<th></th>" : "") + "</tr></thead><tbody>";
+    var lines = ed ? ed.lines : d.lines || [];
+    lines.forEach(function (l, i) {
+      var lc = ed ? null : c.lines[i], p = S.prices[l.p], notes = [];
+      if (l.note) notes.push(l.note); if (lc && lc.how && !l.note) notes.push(lc.how);
+      var nameCell = l.sub ? '<button class="link" data-act="open" data-id="' + esc(l.sub) + '">' + esc(l.n) + "</button>" : esc(l.n) + (p && normName(p.name) !== normName(l.n) ? ' <span class="muted">→ ' + esc(p.name) + "</span>" : "") + (p && p.check ? ' <span class="tag attn">check price</span>' : "");
+      h += "<tr><td>" + nameCell + (notes.length ? '<div class="note' + (/MISMATCH|1:1/.test(notes.join()) ? " warn" : "") + '">' + esc(notes.join("; ")) + "</div>" : "") + "</td>";
+      if (ed) h += '<td class="num"><input class="cell plain" id="eq-' + i + '" data-eq="' + i + '" inputmode="decimal" value="' + esc(l.q) + '"> ' + esc(l.u) + '</td><td class="num hide-sm"></td><td class="num"></td><td class="num hide-sm"></td><td><button class="btn danger" data-act="rmline" data-i="' + i + '" aria-label="Remove ' + esc(l.n) + '">Remove</button></td></tr>';
+      else h += '<td class="num">' + n2(l.q * bf, (l.q * bf) % 1 ? 1 : 0) + " " + esc(l.u) + '</td><td class="num hide-sm muted">' + (lc.unitPrice == null ? '<span class="tag attn">price needed</span>' : l.sub ? n2(lc.unitPrice * 1000) + " /kg" : n2(perKg(p)) + (p.unit === "pc" ? " /pc" : p.unit === "ml" ? " /L" : " /kg")) + '</td><td class="num">' + money(lc.cost == null ? null : lc.cost * bf) + '</td><td class="num hide-sm muted">' + (lc.cost != null && c.ing ? pct(lc.cost / c.ing, 0) : "\u2013") + "</td></tr>";
+    });
+    if (!ed) h += '<tr class="total"><td><b>Total ' + (bf !== 1 ? esc(B) + " L batch cost" : "cost as written") + '</b><div class="sub">' + n2(c.yieldG * bf, 0) + " g yield \u00b7 " + n2(c.portions * bf, 1) + " portions of " + n2(d.portion, 0) + ' g</div></td><td class="num">' + n2(c.rawYield * bf, 0) + ' g</td><td class="num hide-sm"></td><td class="num"><b>' + money(c.ing * bf) + '</b></td><td class="num hide-sm muted">100%</td></tr>';
+    h += "</tbody></table></div>";
+    if (ed) {
+      h += '<div class="panel"><h3>Add an ingredient</h3><div class="fields"><div class="field"><label for="al-name">Ingredient (from the price list)</label><input id="al-name" list="pricenames" style="font-family:var(--body)"><datalist id="pricenames">' + Object.keys(S.prices).map(function (k) { return '<option value="' + esc(S.prices[k].name) + '">'; }).join("") + '</datalist></div><div class="field"><label for="al-qty">Quantity</label><input id="al-qty" inputmode="decimal"></div><div class="field"><label for="al-unit">Unit</label><select id="al-unit"><option>g</option><option>ml</option><option>pc</option></select></div></div><div><button class="btn" data-act="addline">Add to recipe</button></div><p class="note">An ingredient must be on the price list first, so every line has a real price. Add new items on the Prices tab.</p></div>';
+    }
+    if ((d.flags || []).length) h += "<h3>Flags from the source file</h3><ul class=\"flags\">" + d.flags.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
+    var users = S.usedIn["SUB:" + d.id];
+    if (users) h += "<h3>Used in</h3><div>" + Object.keys(users).map(function (id) { return '<button class="link" data-act="open" data-id="' + esc(id) + '">' + esc(S.dishes[id].name) + "</button>"; }).join(" · ") + "</div>";
+    h += '<p class="note">Source sheet: ' + esc(d.sheet || "–") + ". Loading: +" + pct(S.settings.wastePct, 0) + " waste and spoilage, then +" + pct(S.settings.overheadPct, 0) + " overhead (\u00d7 " + n2(1 + c.loading, 2) + ")." + (d.editedAt ? " Last edited " + esc(String(d.editedAt).slice(0, 10)) + (d.editedBy ? ' by <span data-uid="' + esc(d.editedBy) + '"></span>' : "") + "." : "") + "</p>";
+    host.innerHTML = h + "</div></aside>";
+  }
+
+  /* ---------- compare ---------- */
+  function vCompare() {
+    var field = S.cmp, groups = {}, all = { n: 0, tot: [], ld: [], fc: [], fcl: [], gm: [], sell: [], bt: [] };
+    Object.keys(S.dishes).forEach(function (id) {
+      var d = S.dishes[id], c = S.costs[id]; if (d.type !== "Dish" || c.total == null) return;
+      var g = groups[d[field]] = groups[d[field]] || { n: 0, tot: [], ld: [], fc: [], fcl: [], gm: [], sell: [], bt: [] };
+      [g, all].forEach(function (x) { x.n++; x.tot.push(c.total); x.ld.push(c.loaded); x.bt.push(c.ing * bfOf(c)); if (c.fc != null) { x.fc.push(c.fc); x.fcl.push(c.fcLoaded); x.gm.push(c.gmLoaded); x.sell.push(c.net); } });
+    });
+    var avg = function (a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : null; };
+    var names = Object.keys(groups).sort(function (a, b) { return avg(groups[b].tot) - avg(groups[a].tot); });
+    var mx = Math.max.apply(null, names.map(function (k) { return avg(groups[k].tot); }).concat([0.01]));
+    var h = '<div><h2>Food cost by ' + (field === "cuisine" ? "cuisine" : "menu") + '</h2><p class="lede">Dishes only; batches are left out. Food cost % uses each dish\'s selling price (the ' + pct(S.settings.targetFc, 0) + ' suggestion unless you have set your own). Portion sizes differ a lot between dishes, so food cost % is the fair comparison.</p></div>';
+    h += '<div class="toolbar"><select id="cmp-by" aria-label="Group by"><option value="cuisine"' + (field === "cuisine" ? " selected" : "") + '>Group by cuisine</option><option value="menu"' + (field === "menu" ? " selected" : "") + ">Group by menu</option></select>" + (S.dl ? '<button class="btn" data-act="csv">Export all dishes to CSV</button>' : "") + "</div>";
+    h += '<div class="tablebox"><table><thead><tr><th>' + (field === "cuisine" ? "Cuisine" : "Menu") + '</th><th class="num">Dishes</th><th class="num">Avg loaded / portion</th><th class="num">Avg ingredients / portion</th><th class="hide-sm">Average, to scale</th><th class="num hide-sm">Lowest</th><th class="num hide-sm">Highest</th><th class="num hide-sm">Avg loaded ' + esc(curBatch()) + ' L batch</th><th class="num">Priced</th><th class="num">Avg food cost %</th><th class="num hide-sm">Avg loaded %</th><th class="num">Avg margin</th></tr></thead><tbody>';
+    function row(label, g, strong) {
+      var a = avg(g.tot);
+      return "<tr><td>" + (strong ? "<b>" + esc(label) + "</b>" : '<button class="link" data-act="grp" data-v="' + esc(label) + '">' + esc(label) + "</button>") + '</td><td class="num">' + g.n + '</td><td class="num"><b>' + money(avg(g.ld)) + '</b></td><td class="num">' + money(a) + '</td><td class="hide-sm barcell">' + (strong ? "" : '<div class="bar" style="width:' + Math.max(2, (a / mx) * 100).toFixed(1) + '%" title="' + esc(label) + ": " + n2(a) + ' average per portion"></div>') + '</td><td class="num hide-sm">' + money(Math.min.apply(null, g.tot)) + '</td><td class="num hide-sm">' + money(Math.max.apply(null, g.tot)) + '</td><td class="num hide-sm">' + money(avg(g.bt) * (1 + (S.settings.wastePct || 0)) * (1 + (S.settings.overheadPct || 0)), 0) + '</td><td class="num">' + g.fc.length + '</td><td class="num">' + pct(avg(g.fc)) + '</td><td class="num hide-sm">' + pct(avg(g.fcl)) + '</td><td class="num">' + pct(avg(g.gm)) + "</td></tr>";
+    }
+    names.forEach(function (k) { h += row(k, groups[k], false); });
+    if (all.n) h += row("All dishes", all, true);
+    return h + "</tbody></table></div>";
+  }
+
+  /* ---------- prices ---------- */
+  function vPrices() {
+    var f = S.pf, q = normName(f.q), ids = Object.keys(S.prices).filter(function (k) {
+      var p = S.prices[k];
+      if (f.cat && (p.cat || "Food") !== f.cat) return false;
+      if (f.show === "check" && !p.check && typeof p.price === "number") return false;
+      if (f.show === "changed" && p.prev == null) return false;
+      if (f.show === "unused" && S.usedIn[k]) return false;
+      if (q && normName(p.name + " " + (p.aliases || []).join(" ") + " " + (p.supplier || "")).indexOf(q) < 0) return false;
+      return true;
+    }).sort(function (a, b) { return S.prices[a].name.toLowerCase() < S.prices[b].name.toLowerCase() ? -1 : 1; });
+    var h = '<div><h2>Ingredient prices</h2><p class="lede">One price per ingredient, used by every dish. Edit a price here and all dishes re-cost at once. To replace the whole sheet, use Update prices.</p></div>';
+    h += '<div class="toolbar"><input type="search" id="p-q" placeholder="Search ingredient or supplier" value="' + esc(f.q) + '" aria-label="Search prices"><select id="p-cat" aria-label="Category">' + [["", "Food and beverage"], ["Food", "Food only"], ["Beverage", "Beverage only"]].map(function (o) { return '<option value="' + o[0] + '"' + ((f.cat || "") === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + '</select><select id="p-show" aria-label="Show">' + [["all", "All prices"], ["check", "Prices to check or enter"], ["changed", "Changed from previous"], ["unused", "Not used in any recipe"]].map(function (o) { return '<option value="' + o[0] + '"' + (f.show === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></div>";
+    h += '<div class="tablebox"><table><thead><tr><th>Ingredient</th><th class="num">Price per kg / L / pc</th><th class="num hide-sm">Per 30 ml pour</th><th class="num hide-sm">Previous</th><th class="num">Change</th><th class="hide-sm">Source</th><th class="num">Used in</th><th class="num hide-sm">g per ml</th></tr></thead><tbody>';
+    ids.forEach(function (k) {
+      var p = S.prices[k], prevKg = p.prev == null ? null : (p.unit === "pc" ? p.prev : p.prev * 1000), ch = p.prev ? p.price / p.prev - 1 : null, used = S.usedIn[k] ? Object.keys(S.usedIn[k]).length : 0;
+      h += "<tr><td>" + esc(p.name) + (typeof p.price !== "number" ? ' <span class="tag attn">price needed</span>' : p.check ? ' <span class="tag attn">check</span>' : "") + ((p.cat || "Food") === "Beverage" ? ' <span class="tag">bev</span>' : "") + '<div class="sub">' + esc(unitLabel(p.unit)) + (p.sku ? " \u00b7 " + esc(p.sku) : "") + (p.supplier ? " \u00b7 " + esc(p.supplier) : "") + (p.pack ? " \u00b7 " + esc(p.pack) : "") + "</div>" + (p.flag ? '<div class="note' + (p.check ? " warn" : "") + '">' + esc(p.flag) + "</div>" : "") + "</td>" +
+        '<td class="num"><input class="cell" id="pr-' + esc(k) + '" data-price="' + esc(k) + '" inputmode="decimal" aria-label="Price of ' + esc(p.name) + '" placeholder="price needed" value="' + (perKg(p) == null ? "" : esc(+perKg(p).toFixed(4))) + '"' + dis() + "></td>" +
+        '<td class="num hide-sm muted">' + (p.unit === "ml" ? money(p.price * 30) : "") + "</td>" +
+        '<td class="num hide-sm muted">' + n2(prevKg) + '</td><td class="num">' + (ch == null || Math.abs(ch) < 0.0005 ? '<span class="muted">–</span>' : '<span class="' + (ch > 0 ? "up" : "down") + '">' + (ch > 0 ? "▲ +" : "▼ ") + (ch * 100).toFixed(0) + "%</span>") + "</td>" +
+        '<td class="hide-sm nowrap"><span class="muted">' + esc(p.source || "") + "</span>" + (p.changed ? '<div class="sub">' + esc(p.changed) + "</div>" : "") + "</td>" +
+        '<td class="num">' + (used ? '<button class="link" data-act="uses" data-k="' + esc(k) + '">' + used + "</button>" : '<span class="muted">0</span>') + "</td>" +
+        '<td class="num hide-sm"><input class="cell plain" style="width:64px" id="dn-' + esc(k) + '" data-dens="' + esc(k) + '" inputmode="decimal" aria-label="Density of ' + esc(p.name) + '" value="' + (p.density ? esc(p.density) : "") + '"' + dis() + "></td></tr>";
+    });
+    h += "</tbody></table></div>";
+    if (!ids.length) h += '<div class="empty">No prices match.</div>';
+    if (S.canWrite) h += '<div class="panel"><h3>Add an ingredient</h3><div class="fields"><div class="field"><label for="np-name">Name</label><input id="np-name" style="font-family:var(--body)"></div><div class="field"><label for="np-unit">Priced</label><select id="np-unit"><option value="g">per kg</option><option value="ml">per litre</option><option value="pc">per piece</option></select></div><div class="field"><label for="np-price">Price (' + esc(S.settings.currency) + ')</label><input id="np-price" inputmode="decimal"></div><div class="field"><label for="np-cat">Category</label><select id="np-cat"><option>Food</option><option>Beverage</option></select></div></div><div><button class="btn" data-act="addprice">Add to price list</button></div></div>';
+    return h;
+  }
+
+  /* ---------- update prices wizard ---------- */
+  function vUpdate() {
+    var w = S.wiz, h = '<div><h2>Replace the price sheet</h2><p class="lede">Upload the new supplier price sheet. Nothing changes until you have seen what moves and pressed Apply. Items are matched by name; anything not in the new sheet keeps its current price.</p></div>';
+    h += '<div class="steps"><span>' + (w.step === 1 ? "<b>1 Choose file</b>" : "1 Choose file") + "</span><span>›</span><span>" + (w.step === 2 ? "<b>2 Match columns</b>" : "2 Match columns") + "</span><span>›</span><span>" + (w.step === 3 ? "<b>3 Review and apply</b>" : "3 Review and apply") + "</span></div>";
+    if (!S.canWrite) h += '<div class="panel">You have view-only access, so you cannot update prices.</div>';
+    else if (w.step === 1) {
+      h += '<div class="grid2"><div class="panel"><h3>Upload an Excel or CSV file</h3><input type="file" id="w-file" accept=".xlsx,.xls,.csv"><p class="note">Works with your Master Price List layout and the Indian Menu price tab. The file is read in your browser; only the prices you approve are saved.</p></div>' +
+        '<div class="panel"><h3>Or paste from Excel</h3><textarea id="w-paste" placeholder="Copy the table in Excel, including its header row, and paste here">' + esc(w.paste || "") + '</textarea><div><button class="btn" data-act="wpaste">Read pasted table</button></div></div></div>';
+      if (w.err) h += '<ul class="flags"><li>' + esc(w.err) + "</li></ul>";
+    } else if (w.step === 2) {
+      var hdr = w.rows[w.hdr] || [], colOpts = function (cur) { return hdr.map(function (c, i) { return '<option value="' + i + '"' + (i === cur ? " selected" : "") + ">" + esc(c == null || c === "" ? "(column " + (i + 1) + ")" : c) + "</option>"; }).join(""); };
+      h += '<div class="panel"><h3>' + esc(w.label) + '</h3><div class="fields">' +
+        (w.sheets && w.sheets.length > 1 ? '<div class="field"><label for="w-sheet">Sheet</label><select id="w-sheet">' + w.sheets.map(function (s) { return '<option' + (s === w.sheet ? " selected" : "") + ">" + esc(s) + "</option>"; }).join("") + "</select></div>" : "") +
+        '<div class="field"><label for="w-hdr">Header row</label><input id="w-hdr" inputmode="numeric" value="' + (w.hdr + 1) + '"></div>' +
+        '<div class="field"><label for="w-name">Ingredient name column</label><select id="w-name">' + colOpts(w.cName) + "</select></div>" +
+        '<div class="field"><label for="w-unit">Unit column</label><select id="w-unit"><option value="-1"' + (w.cUnit < 0 ? " selected" : "") + ">(none, all per g)</option>" + colOpts(w.cUnit) + "</select></div>" +
+        '<div class="field"><label for="w-price">Price column</label><select id="w-price">' + colOpts(w.cPrice) + "</select></div>" +
+        '<div class="field"><label for="w-basis">The price is</label><select id="w-basis"><option value="asStated"' + (w.basis === "asStated" ? " selected" : "") + '>per pack in the unit column (Bot/700ml = price per bottle)</option><option value="perKg"' + (w.basis === "perKg" ? " selected" : "") + ">per kg or litre</option></select></div></div>";
+      h += '<div class="tablebox"><table><thead><tr><th>First rows as read</th><th>Unit</th><th class="num">Price</th></tr></thead><tbody>' + w.rows.slice(w.hdr + 1, w.hdr + 6).map(function (r) { return "<tr><td>" + esc(r[w.cName]) + "</td><td>" + esc(w.cUnit < 0 ? "" : r[w.cUnit]) + '</td><td class="num">' + esc(r[w.cPrice]) + "</td></tr>"; }).join("") + "</tbody></table></div>";
+      h += '<div><button class="btn primary" data-act="wpreview">Preview changes</button> <button class="btn" data-act="wreset">Start again</button></div></div>';
+    } else if (w.step === 3) h += vWizReview();
+    else if (w.step === 4) h += '<div class="panel"><h3>Prices updated</h3><p>' + esc(w.done) + '</p><div><button class="btn primary" data-act="godishes">See dishes</button> <button class="btn" data-act="wreset">Update another sheet</button></div></div>';
+    h += "<h3>Price update history</h3>";
+    if (!S.updates.length) h += '<div class="tablebox"><div class="empty">No price sheets have been applied yet. The starting prices were loaded on 21 Sep 2026.</div></div>';
+    else h += '<div class="tablebox"><table><thead><tr><th>When</th><th>Sheet</th><th class="num">Changed</th><th class="num">Added</th><th>Biggest dish moves</th></tr></thead><tbody>' + S.updates.map(function (u) {
+      return "<tr><td>" + esc(String(u.at || "").slice(0, 16).replace("T", " ")) + (u.by ? '<div class="sub" data-uid="' + esc(u.by) + '"></div>' : "") + "</td><td>" + esc(u.label) + '</td><td class="num">' + esc(u.changed) + '</td><td class="num">' + esc(u.added) + "</td><td>" + (u.movers || []).slice(0, 4).map(function (m) { return esc(m.name) + " " + (m.ch > 0 ? "+" : "") + (m.ch * 100).toFixed(0) + "%"; }).join(" · ") + "</td></tr>";
+    }).join("") + "</tbody></table></div>";
+    return h;
+  }
+  function wizMatch() {
+    var w = S.wiz, idx = {}, seen = {}, items = [], dup = 0;
+    Object.keys(S.prices).forEach(function (k) { var p = S.prices[k]; idx[normName(p.name)] = k; (p.aliases || []).forEach(function (a) { var n = normName(a); if (!idx[n]) idx[n] = k; }); });
+    w.rows.slice(w.hdr + 1).forEach(function (r) {
+      var name = r[w.cName]; if (name == null || String(name).trim() === "") return;
+      var pr = r[w.cPrice]; if (typeof pr === "string") pr = parseNum(pr); if (pr == null || !isFinite(pr) || pr < 0) return;
+      var nn = normName(name); if (seen[nn]) { dup++; return; } seen[nn] = 1;
+      var parsed = parseSheetUnit(w.cUnit < 0 ? "g" : r[w.cUnit], pr, w.basis);
+      var k = idx[nn], cur = k ? S.prices[k] : null, it = { name: String(name).replace(/\u00a0/g, " ").trim(), k: k || null, cur: cur, packText: w.cUnit < 0 ? "" : String(r[w.cUnit] == null ? "" : r[w.cUnit]), listPrice: pr };
+      if (!parsed) { it.kind = "unreadable"; it.on = false; items.push(it); return; }
+      it.unit = parsed.unit; it.price = parsed.price; it.ozNote = parsed.note || "";
+      if (cur) {
+        it.unitChange = cur.unit !== parsed.unit;
+        it.ch = cur.price ? parsed.price / cur.price - 1 : null;
+        it.kind = it.unitChange || Math.abs(parsed.price - cur.price) > Math.max(1e-7, cur.price * 0.0005) ? "changed" : "same";
+        it.on = it.kind === "changed";
+      } else { it.kind = "new"; it.on = !/^batch |home ?made|^curry roux$/i.test(it.name); it.home = !it.on; }
+      items.push(it);
+    });
+    w.items = items; w.dup = dup; w.seen = seen;
+    w.unreadable = items.filter(function (i) { return i.kind === "unreadable"; });
+    var ratios = items.filter(function (i) { return i.kind === "changed" && !i.unitChange && i.ch != null; }).map(function (i) { return i.ch + 1; }).sort(function (a, b) { return a - b; });
+    var med = ratios.length ? ratios[Math.floor(ratios.length / 2)] : 1;
+    w.scaleWarn = med > 300 || med < 1 / 300 ? "Most prices moved by about 1,000 times. The price basis is probably wrong: go back and switch between per unit and per kg." : "";
+  }
+  function wizImpact() {
+    var w = S.wiz, np = {}; Object.keys(S.prices).forEach(function (k) { np[k] = S.prices[k]; });
+    w.items.forEach(function (i) { if (i.on && i.k && i.kind !== "unreadable") np[i.k] = Object.assign({}, S.prices[i.k], { price: i.price, unit: i.unit }); });
+    var after = costAll(np, S.dishes, S.settings), mv = [];
+    Object.keys(S.dishes).forEach(function (id) { var a = S.costs[id].total, b = after[id].total; if (S.dishes[id].type === "Dish" && a && b != null && Math.abs(b / a - 1) > 0.0005) mv.push({ id: id, name: S.dishes[id].name, before: a, after: b, ch: b / a - 1 }); });
+    mv.sort(function (x, y) { return Math.abs(y.ch) - Math.abs(x.ch); });
+    return mv;
+  }
+  function vWizReview() {
+    var w = S.wiz, ch = w.items.filter(function (i) { return i.kind === "changed"; }), nw = w.items.filter(function (i) { return i.kind === "new"; }), same = w.items.filter(function (i) { return i.kind === "same"; }).length;
+    var notIn = Object.keys(S.prices).filter(function (k) { var p = S.prices[k]; return !w.seen[normName(p.name)] && !(p.aliases || []).some(function (a) { return w.seen[normName(a)]; }); }).length;
+    var mv = wizImpact(), nOn = w.items.filter(function (i) { return i.on; }).length;
+    var h = '<div class="kpis"><div class="kpi"><b>' + ch.length + '</b><span>prices change</span></div><div class="kpi"><b>' + same + '</b><span>matched, no change</span></div><div class="kpi"><b>' + nw.length + '</b><span>new ingredients</span></div><div class="kpi"><b>' + notIn + '</b><span>not in this sheet, kept as is</span></div><div class="kpi"><b>' + mv.length + "</b><span>dishes change cost</span></div></div>";
+    if (w.scaleWarn) h += '<ul class="flags"><li><b>' + esc(w.scaleWarn) + "</b></li></ul>";
+    if (w.dup) h += '<p class="note warn">' + w.dup + " repeated ingredient names in the sheet were skipped; the first price for each name is used.</p>";
+    if (w.unreadable.length) h += '<ul class="flags"><li><b>' + w.unreadable.length + ' rows skipped: pack size not readable.</b> ' + esc(w.unreadable.map(function (i) { return i.name + " (" + (i.packText || "blank") + ")"; }).join(", ")) + ". Add the size to the sheet (for example Can/330ml) or enter these on the Prices tab.</li></ul>";
+    h += '<div class="grid2"><div><h3>Price changes</h3><div class="tablebox" style="max-height:460px;overflow-y:auto"><table><thead><tr><th></th><th>Ingredient</th><th class="num">Now</th><th class="num">New</th><th class="num">Change</th></tr></thead><tbody>';
+    ch.concat(nw).forEach(function (i) {
+      var ix = w.items.indexOf(i), big = i.ch != null && Math.abs(i.ch) > 0.5;
+      h += '<tr><td><input type="checkbox" id="wi-' + ix + '" data-wi="' + ix + '"' + (i.on ? " checked" : "") + ' aria-label="Apply ' + esc(i.name) + '"></td><td>' + esc(i.name) + (i.cur && normName(i.cur.name) !== normName(i.name) ? ' <span class="muted">→ ' + esc(i.cur.name) + "</span>" : "") + (i.kind === "new" ? ' <span class="tag">new</span>' : "") + (i.ozNote ? ' <span class="tag">' + esc(i.ozNote) + "</span>" : "") + (i.home ? ' <span class="tag attn">home-made, costed from its recipe</span>' : "") + (i.unitChange ? ' <span class="tag attn">unit ' + esc(i.cur.unit) + " → " + esc(i.unit) + "</span>" : "") + (big ? ' <span class="tag attn">big move</span>' : "") + '</td><td class="num muted">' + (i.cur ? n2(perKg(i.cur)) : "–") + '</td><td class="num">' + n2(perKg(i)) + '</td><td class="num">' + (i.ch == null || i.unitChange ? "–" : '<span class="' + (i.ch > 0 ? "up" : "down") + '">' + (i.ch > 0 ? "+" : "") + (i.ch * 100).toFixed(0) + "%</span>") + "</td></tr>";
+    });
+    if (!ch.length && !nw.length) h += '<tr><td colspan="5" class="empty">Every matched price is already the same.</td></tr>';
+    h += '</tbody></table></div></div><div><h3>Dishes that move most</h3><div class="tablebox" style="max-height:460px;overflow-y:auto"><table><thead><tr><th>Dish</th><th class="num">Now</th><th class="num">After</th><th class="num">Change</th></tr></thead><tbody>';
+    mv.slice(0, 40).forEach(function (m) { h += "<tr><td>" + esc(m.name) + '</td><td class="num muted">' + n2(m.before) + '</td><td class="num">' + n2(m.after) + '</td><td class="num"><span class="' + (m.ch > 0 ? "up" : "down") + '">' + (m.ch > 0 ? "+" : "") + (m.ch * 100).toFixed(1) + "%</span></td></tr>"; });
+    if (!mv.length) h += '<tr><td colspan="4" class="empty">No dish cost changes.</td></tr>';
+    h += "</tbody></table></div></div></div>";
+    h += '<div class="panel"><div class="fields"><div class="field"><label for="w-label">Name this update</label><input id="w-label" style="font-family:var(--body)" value="' + esc(w.label) + '"></div><div class="field"><label for="w-cat">New ingredients are</label><select id="w-cat"><option' + (w.cat !== "Beverage" ? " selected" : "") + '>Food</option><option' + (w.cat === "Beverage" ? " selected" : "") + '>Beverage</option></select></div></div><div><button class="btn primary" data-act="wapply"' + (nOn ? "" : " disabled") + ">Apply " + nOn + " price " + (nOn === 1 ? "change" : "changes") + '</button> <button class="btn" data-act="wback">Back</button> <button class="btn" data-act="wreset">Cancel</button></div></div>';
+    return h;
+  }
+  function wizLoadRows(rows, label, sheets, sheet) {
+    var w = S.wiz = { step: 2, rows: rows, label: label, sheets: sheets || null, sheet: sheet || null, book: S.wiz.book, basis: "asStated", cat: /bev|bar|drink|liquor|wine|beer/i.test(label) ? "Beverage" : "Food" };
+    var hdr = -1;
+    for (var i = 0; i < Math.min(rows.length, 40) && hdr < 0; i++) {
+      var cells = (rows[i] || []).map(function (c) { return normName(c); });
+      if (cells.some(function (c) { return /item|ingredient|name|description/.test(c); }) && cells.some(function (c) { return /price/.test(c); })) hdr = i;
+    }
+    if (hdr < 0) { S.wiz = { step: 1, err: "Could not find a header row with an item-name column and a price column in “" + label + "”. Check the file, or paste the table with its header row." }; return; }
+    w.hdr = hdr; wizGuessCols();
+  }
+  function wizGuessCols() {
+    var w = S.wiz, cells = (w.rows[w.hdr] || []).map(function (c) { return normName(c); });
+    var find = function (re, not) { for (var i = 0; i < cells.length; i++) if (re.test(cells[i]) && !(not && not.test(cells[i]))) return i; return -1; };
+    w.cName = Math.max(0, find(/item|ingredient|name|description/));
+    w.cUnit = find(/unit/, /price/);
+    var p = find(/price\s*\/\s*(as served\s*)?unit|unit price|price per unit/);
+    if (p < 0) { p = find(/price.*(kg|kilo|litre|liter)/); if (p >= 0) w.basis = "perKg"; }
+    if (p < 0) p = find(/price|cost/);
+    w.cPrice = Math.max(0, p);
+  }
+  function wizReadSheet(name) {
+    var ws = S.wiz.book.Sheets[name], rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: false });
+    var label = S.wiz.fileName + (S.wiz.book.SheetNames.length > 1 ? " / " + name : ""), book = S.wiz.book, fn = S.wiz.fileName;
+    wizLoadRows(rows, label, book.SheetNames, name); S.wiz.book = book; S.wiz.fileName = fn;
+  }
+  function wizApply() {
+    var w = S.wiz, by = {}, changed = 0, added = 0, extra = 0, label = ($("w-label") || {}).value || w.label, mv = wizImpact();
+    w.items.forEach(function (i) {
+      if (!i.on || i.kind === "unreadable") return;
+      var k = i.k, rec;
+      if (k) { var cur = S.prices[k]; rec = { price: +i.price.toPrecision(10), unit: i.unit, prev: cur.price, prevSource: cur.source || "", source: label, changed: today(), check: false }; changed++; }
+      else { k = nextPid(extra++); rec = { name: i.name, unit: i.unit, price: +i.price.toPrecision(10), source: label, supplier: "", pack: i.packText ? i.packText + " @ " + i.listPrice : "", aliases: [], flag: i.ozNote || "", check: false, prev: null, changed: today(), cat: w.cat || "Food" }; added++; }
+      var sh = shardFor(k); (by[sh] = by[sh] || {})[k] = rec;
+    });
+    var btn = document.querySelector('[data-act="wapply"]'); if (btn) btn.disabled = true;
+    updPrices(by).then(function () {
+      var log = { at: new Date().toISOString(), label: label, changed: changed, added: added, movers: mv.slice(0, 12).map(function (m) { return { id: m.id, name: m.name, before: +m.before.toFixed(4), after: +m.after.toFixed(4), ch: +m.ch.toFixed(4) }; }) };
+      if (S.uid) log.by = S.uid;
+      return S.db.collection("updates").add(log);
+    }).then(function () {
+      S.wiz = { step: 4, done: changed + " prices changed and " + added + " ingredients added from “" + label + "”. " + mv.length + " dishes were re-costed." }; render(); toast("Prices updated");
+    }).catch(function (e) { writeErr(e); render(); });
+  }
+
+  /* ---------- settings ---------- */
+  function vSettings() {
+    var s = S.settings;
+    return '<div><h2>Settings</h2><p class="lede">These apply to every dish and everyone who uses this page.</p></div><div class="panel"><div class="fields">' +
+      '<div class="field"><label for="s-vatinc">Selling prices you type</label><select id="s-vatinc"' + dis() + '><option value="0"' + (s.vatIncluded ? "" : " selected") + '>exclude VAT</option><option value="1"' + (s.vatIncluded ? " selected" : "") + ">include VAT</option></select></div>" +
+      '<div class="field"><label for="s-vat">VAT rate %</label><input id="s-vat" data-set="vatRate" data-pct="1" inputmode="decimal" value="' + +(s.vatRate * 100).toFixed(2) + '"' + dis() + "></div>" +
+      '<div class="field"><label for="s-waste">Waste and spoilage %</label><input id="s-waste" data-set="wastePct" data-pct="1" inputmode="decimal" value="' + +((s.wastePct == null ? 0.3 : s.wastePct) * 100).toFixed(1) + '"' + dis() + "><small>Added to the ingredient cost</small></div>" +
+      '<div class="field"><label for="s-oh">Overhead %</label><input id="s-oh" data-set="overheadPct" data-pct="1" inputmode="decimal" value="' + +((s.overheadPct == null ? 0.3 : s.overheadPct) * 100).toFixed(1) + '"' + dis() + "><small>Added after waste: cost \u00d7 " + n2((1 + (s.wastePct == null ? 0.3 : s.wastePct)) * (1 + (s.overheadPct == null ? 0.3 : s.overheadPct)), 2) + " in total</small></div>" +
+      '<div class="field"><label for="s-target">Target food cost % after loading</label><input id="s-target" data-set="targetFc" data-pct="1" inputmode="decimal" value="' + +(s.targetFc * 100).toFixed(1) + '"' + dis() + "><small>Suggested price = loaded cost \u00f7 this. Green at or under, amber within 3 points, red above</small></div>" +
+      '<div class="field"><label for="s-round">Round suggested prices up to</label><input id="s-round" data-set="priceRound" inputmode="decimal" value="' + esc(s.priceRound || 1) + '"' + dis() + "><small>" + esc(s.currency) + "</small></div>" +
+      '<div class="field"><label for="s-batches">Batch sizes (L)</label><input id="s-batches" data-set="batchSizes" value="' + esc((s.batchSizes || [5, 10, 15]).join(", ")) + '"' + dis() + "><small>Comma-separated; 1 L scaled as 1 kg of raw ingredients</small></div>" +
+      '<div class="field"><label for="s-ratio">Cooked rice from 1 g raw (g)</label><input id="s-ratio" data-set="riceRatio" inputmode="decimal" value="' + esc(s.riceRatio || 3) + '"' + dis() + "><small>Master note: rice triples when cooked, so a 60 g cooked serve costs 20 g of raw rice</small></div>" +
+      '<div class="field"><label for="s-egg">Egg weight (g per piece)</label><input id="s-egg" data-set="eggG" inputmode="decimal" value="' + esc(s.eggG) + '"' + dis() + "></div></div></div>" +
+      '<div class="panel"><h3>How costs are worked out</h3><p class="lede">Line cost is quantity × price. Where a recipe is written in grams and the price is per litre, the density on the Prices tab converts it; with no density on file the line is treated 1:1 and flagged. Cost per portion is batch cost \u00f7 yield \u00d7 portion size, plus anything served with it. Loaded cost adds waste and spoilage, then overhead on top. Suggested price = loaded cost \u00f7 target food cost %. Food cost % is shown after loading, against the target; the ingredient-only figure is in each dish. Sub-recipes feed dishes at their ingredient cost per gram.</p><p class="lede">New menus: send the recipe workbook to Claude in chat. It is checked for errors, then loaded here.</p><p class="lede">Beverages: bottles are priced per ml from their pack size (a 25 oz label is read as the 750 ml bottle, 23 oz as 700 ml, 12 oz as 350 ml); cans and bottled water are priced per can or bottle. The Prices tab shows the cost of a 30 ml pour beside each liquid.</p></div>';
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-tab],[data-act],[data-setbatch]"); if (!t) return;
+    if (t.dataset.setbatch) { S.batch = +t.dataset.setbatch; try { localStorage.setItem("dcb-batch", String(S.batch)); } catch (x) {} render(); return; }
+    if (t.dataset.tab) { S.tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
+    var a = t.dataset.act, d = S.detail && S.dishes[S.detail];
+    if (a === "open") { S.detail = t.dataset.id; S.edit = null; S.asWritten = false; render(); }
+    else if (a === "rmphoto" && S.detail) removePhoto(S.detail);
+    else if (a === "close") { S.detail = null; S.edit = null; render(); }
+    else if (a === "goprices") { S.tab = "prices"; S.pf.show = "check"; render(); }
+    else if (a === "godishes") { S.tab = "dishes"; render(); }
+    else if (a === "clearing") { S.f.ing = ""; render(); }
+    else if (a === "uses") { S.f = { q: "", menu: "", cuisine: "", type: "", attn: false, sort: "cost", ing: t.dataset.k }; S.tab = "dishes"; render(); }
+    else if (a === "grp") { S.f[S.cmp] = t.dataset.v; S.f.type = "Dish"; S.f.sort = "cost"; S.tab = "dishes"; render(); }
+    else if (a === "edit" && d) { S.edit = { id: d.id, lines: JSON.parse(JSON.stringify(d.lines || [])) }; render(); }
+    else if (a === "canceledit") { S.edit = null; render(); }
+    else if (a === "rmline" && S.edit) { S.edit.lines.splice(+t.dataset.i, 1); render(); }
+    else if (a === "addline" && S.edit) {
+      var nm = normName($("al-name").value), q = parseNum($("al-qty").value), k = Object.keys(S.prices).filter(function (x) { return normName(S.prices[x].name) === nm; })[0];
+      if (!k) return toast("Pick an ingredient from the price list.");
+      if (!(q > 0)) return toast("Enter a quantity above zero.");
+      S.edit.lines.push({ n: S.prices[k].name, q: q, u: $("al-unit").value, p: k }); render();
+    }
+    else if (a === "saveedit" && S.edit) {
+      if (S.edit.lines.some(function (l) { return !(Number(l.q) > 0); })) return toast("Every quantity must be above zero.");
+      var id = S.edit.id, lines = S.edit.lines; S.edit = null; updDish(id, { lines: lines }).then(function () { toast("Recipe saved"); }); render();
+    }
+    else if (a === "addprice") {
+      var name = $("np-name").value.trim(), unit = $("np-unit").value, pr = parseNum($("np-price").value);
+      if (!name) return toast("Enter the ingredient name.");
+      if (Object.keys(S.prices).some(function (x) { return normName(S.prices[x].name) === normName(name); })) return toast("That ingredient is already on the list.");
+      if (!(pr >= 0)) return toast("Enter the price as a number.");
+      var pid = nextPid(), by = {}; by[shardFor(pid)] = {}; by[shardFor(pid)][pid] = { name: name, unit: unit, price: unit === "pc" ? pr : pr / 1000, source: "Added in app", supplier: "", pack: "", aliases: [], flag: "", check: false, prev: null, changed: today(), cat: $("np-cat").value };
+      updPrices(by).then(function () { toast("Added " + name); }).catch(writeErr);
+    }
+    else if (a === "rmside" && d) { var ns = (d.sides || []).slice(); ns.splice(+t.dataset.i, 1); updDish(d.id, { sides: ns }); }
+    else if (a === "addside" && d) {
+      var an = normName($("ad-name").value), aq = parseNum($("ad-qty").value), au = $("ad-unit").value;
+      if (!(aq > 0)) return toast("Enter the quantity per serve.");
+      var pk = Object.keys(S.prices).filter(function (x) { return normName(S.prices[x].name) === an; })[0];
+      var sk = Object.keys(S.dishes).filter(function (x) { return S.dishes[x].type === "Sub-recipe" && normName(S.dishes[x].name) === an; })[0];
+      if (!pk && !sk) return toast("Pick an ingredient from the price list or a sub-recipe.");
+      if (sk === d.id) return toast("A dish cannot be served with itself.");
+      var side = pk ? { label: S.prices[pk].name, p: pk, q: aq, u: au } : { label: S.dishes[sk].name, sub: sk, q: aq, u: "g" };
+      updDish(d.id, { sides: (d.sides || []).concat([side]) }).then(function () { toast("Added " + side.label); });
+    }
+    else if (a === "csv") exportCsv();
+    else if (a === "wreset") { S.wiz = { step: 1 }; render(); }
+    else if (a === "wback") { S.wiz.step = 2; render(); }
+    else if (a === "wpaste") {
+      var txt = $("w-paste").value; if (!txt.trim()) return toast("Paste the table first.");
+      var rows = txt.split(/\r?\n/).map(function (r) { return r.split("\t"); });
+      wizLoadRows(rows, "Pasted table " + today()); render();
+    }
+    else if (a === "wpreview") { wizMatch(); S.wiz.step = 3; render(); }
+    else if (a === "wapply") wizApply();
+  });
+  document.addEventListener("input", function (e) {
+    var id = e.target.id;
+    if (id === "f-q") { S.f.q = e.target.value; render(); }
+    else if (id === "p-q") { S.pf.q = e.target.value; render(); }
+    else if (id === "w-paste") S.wiz.paste = e.target.value;
+  });
+  document.addEventListener("change", function (e) {
+    var t = e.target, id = t.id, v;
+    if (id === "f-menu") { S.f.menu = t.value; render(); }
+    else if (id === "f-cuisine") { S.f.cuisine = t.value; render(); }
+    else if (id === "f-type") { S.f.type = t.value; render(); }
+    else if (id === "f-sort") { S.f.sort = t.value; render(); }
+    else if (id === "f-attn") { S.f.attn = t.checked; render(); }
+    else if (id === "p-show") { S.pf.show = t.value; render(); }
+    else if (id === "p-cat") { S.pf.cat = t.value; render(); }
+    else if (id === "cmp-by") { S.cmp = t.value; render(); }
+    else if (t.dataset.sell) { v = parseNum(t.value); if (v !== v || v < 0) return toast("Enter the selling price as a number."); t.defaultValue = t.value; updDish(t.dataset.sell, { sell: v || null }); }
+    else if (id === "d-aswritten") { S.asWritten = t.checked; render(); }
+    else if (id === "d-photo" && S.detail) { addPhoto(S.detail, t.files && t.files[0]); }
+    else if (id === "d-rice" && S.detail) { var dd = S.dishes[S.detail], keep = (dd.sides || []).filter(function (x) { return x.kind !== "rice"; }), cooked = ((dd.sides || []).filter(function (x) { return x.kind === "rice"; })[0] || {}).cooked || 60; updDish(S.detail, { sides: t.value ? [{ kind: "rice", p: t.value, cooked: cooked }].concat(keep) : keep }); }
+    else if (id === "d-ricecooked" && S.detail) { v = parseNum(t.value); if (!(v > 0)) return toast("Enter the cooked rice weight in grams."); var ds2 = (S.dishes[S.detail].sides || []).map(function (x) { return x.kind === "rice" ? Object.assign({}, x, { cooked: v }) : x; }); t.defaultValue = t.value; updDish(S.detail, { sides: ds2 }); }
+    else if (t.dataset.dfield && S.detail) { v = parseNum(t.value); if (v !== v || v < 0) return toast("Enter a number."); if (t.dataset.dfield === "portion" && !(v > 0)) return toast("Portion size must be above zero."); var patch = {}; patch[t.dataset.dfield] = v || null; t.defaultValue = t.value; updDish(S.detail, patch); }
+    else if (t.dataset.eq && S.edit) { v = parseNum(t.value); if (v === v && v != null) S.edit.lines[+t.dataset.eq].q = v; }
+    else if (t.dataset.price) {
+      v = parseNum(t.value); var p = S.prices[t.dataset.price]; if (v == null || v !== v || v < 0) return toast("Enter the price as a number.");
+      var np = p.unit === "pc" ? v : v / 1000; if (typeof p.price === "number" && Math.abs(np - p.price) < 1e-9) return;
+      var by = {}; by[shardFor(t.dataset.price)] = {}; by[shardFor(t.dataset.price)][t.dataset.price] = { price: np, prev: p.price, prevSource: p.source || "", source: "Edited in app", changed: today(), check: false };
+      t.defaultValue = t.value; updPrices(by).then(function () { toast(p.name + " updated; dishes re-costed"); }).catch(writeErr);
+    }
+    else if (t.dataset.dens) { v = parseNum(t.value); if (v !== v || v < 0) return toast("Enter density as g per ml, for example 1.03."); var b2 = {}, k = t.dataset.dens; b2[shardFor(k)] = {}; b2[shardFor(k)][k] = { density: v || null }; t.defaultValue = t.value; updPrices(b2).catch(writeErr); }
+    else if (id === "s-vatinc") saveSettings({ vatIncluded: t.value === "1" });
+    else if (t.dataset.set === "batchSizes") { var bs = t.value.split(/[,\s]+/).map(Number).filter(function (x) { return x > 0; }); if (!bs.length) return toast("Enter batch sizes in litres, for example 5, 10, 15."); t.defaultValue = t.value; saveSettings({ batchSizes: bs }); }
+    else if (t.dataset.set) { v = parseNum(t.value); if (!(v >= 0)) return toast("Enter a number."); var s = {}; s[t.dataset.set] = t.dataset.pct ? v / 100 : v; t.defaultValue = t.value; saveSettings(s); }
+    else if (id === "w-file" && t.files && t.files[0]) readFile(t.files[0]);
+    else if (id === "w-sheet") { wizReadSheet(t.value); render(); }
+    else if (id === "w-hdr") { v = parseNum(t.value); if (v >= 1 && v <= S.wiz.rows.length) { S.wiz.hdr = v - 1; wizGuessCols(); render(); } }
+    else if (id === "w-name") S.wiz.cName = +t.value, render();
+    else if (id === "w-unit") S.wiz.cUnit = +t.value, render();
+    else if (id === "w-price") S.wiz.cPrice = +t.value, render();
+    else if (id === "w-basis") S.wiz.basis = t.value;
+    else if (id === "w-label") S.wiz.label = t.value;
+    else if (id === "w-cat") S.wiz.cat = t.value;
+    else if (t.dataset.wi) { S.wiz.items[+t.dataset.wi].on = t.checked; render(); }
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && S.detail) { S.detail = null; S.edit = null; render(); } });
+  function saveSettings(patch) {
+    if (!S.db) return;
+    enqueue("settings/main", function () { var ref = S.db.doc("settings/main"); return ref.update(patch).catch(function (e) { if (e && e.code === "invalid_argument") return ref.set(Object.assign({}, S.settings, patch)); throw e; }); }).catch(writeErr);
+  }
+  function readFile(file) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        if (typeof XLSX === "undefined") throw new Error("reader");
+        var book = XLSX.read(new Uint8Array(fr.result), { type: "array" });
+        S.wiz = { step: 1, book: book, fileName: file.name };
+        var pick = book.SheetNames.filter(function (n) { return /price|master|inventory/i.test(n); })[0] || book.SheetNames[0];
+        wizReadSheet(pick);
+      } catch (x) { S.wiz = { step: 1, err: "That file could not be read. Save it as .xlsx or .csv and try again, or paste the table instead." }; }
+      render();
+    };
+    fr.onerror = function () { S.wiz = { step: 1, err: "That file could not be read." }; render(); };
+    fr.readAsArrayBuffer(file);
+  }
+  function exportCsv() {
+    var q = function (x) { x = x == null ? "" : String(x); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; }, r = function (x, d) { return x == null ? "" : (+x).toFixed(d == null ? 2 : d); };
+    var rows = [["ID", "Menu", "Cuisine", "Dish", "Type", "Batch size L", "Batch loaded cost", "Batch ingredient cost", "Portions per batch", "Portion g", "Loaded cost per portion", "Suggested price", "Total ingredient cost per portion", "Dish-only cost per portion", "Rice add-on", "Other add-ons", "Selling price", "Price set by", "Net selling price", "Food cost %", "Loaded food cost %", "Gross profit", "Gross margin %", "Gross margin % after loading"]];
+    Object.keys(S.dishes).sort().forEach(function (id) { var d = S.dishes[id], c = S.costs[id]; rows.push([id, d.menu, d.cuisine, d.name, d.type, curBatch(), r(c.ing * bfOf(c) * (1 + c.loading)), r(c.ing * bfOf(c)), r(c.portions * bfOf(c), 1), d.portion, r(c.loaded), r(c.suggested, 0), r(c.total), r(c.perPortion), r(c.rice), r(c.addons), r(c.sell, 0), c.sellDefault ? "suggested" : "you", r(c.net), c.fc == null ? "" : r(c.fc * 100, 1), c.fcLoaded == null ? "" : r(c.fcLoaded * 100, 1), r(c.gp), c.gm == null ? "" : r(c.gm * 100, 1), c.gmLoaded == null ? "" : r(c.gmLoaded * 100, 1)]); });
+    S.dl.save({ filename: "dish-costs-" + today() + ".csv", data: "﻿" + rows.map(function (x) { return x.map(q).join(","); }).join("\r\n") }).catch(function (e) { if (e && e.code !== "declined") toast("The export could not be saved here."); });
+  }
+
+  /* ---------- boot ---------- */
+  function subErr() { $("banner").hidden = false; $("bannertext").textContent = "Live updates stopped. Reload the page to reconnect."; }
+  function boot(db) {
+    S.db = db;
+    if (!db) { S.noDb = true; render(); return; }
+    db.collection("prices").onSnapshot(function (snap) {
+      var all = {}, sh = {};
+      snap.docs.forEach(function (doc) { var items = (doc.data() || {}).items || {}; Object.keys(items).forEach(function (k) { if (items[k] && typeof items[k] === "object") { all[k] = items[k]; sh[k] = doc.id; } }); });
+      S.prices = all; S.shardOf = sh; S.got.prices = true; recompute(); render();
+    }, subErr);
+    db.collection("dishes").onSnapshot(function (snap) {
+      var all = {}; snap.docs.forEach(function (doc) { var d = doc.data(); if (d && d.name) { all[doc.id] = Object.assign({}, d, { id: doc.id }); } });
+      S.dishes = all; S.got.dishes = true; recompute(); render();
+    }, subErr);
+    db.doc("settings/main").onSnapshot(function (snap) { if (snap.exists) { S.settings = Object.assign({}, S.settings, snap.data()); recompute(); render(); } }, subErr);
+    db.collection("updates").orderBy("at", "desc").limit(25).onSnapshot(function (snap) { S.updates = snap.docs.map(function (d) { return d.data(); }); if (S.tab === "update" && S.wiz.step !== 2 && S.wiz.step !== 3) render(); }, function () {});
+  }
+  if (window.claude && window.claude.use) {
+    window.claude.use("db").then(boot, function () { boot(null); });
+    window.claude.use("user").then(function (u) {
+      if (!u) return; S.user = u;
+      u.can("data.write").then(function (ok) { if (ok === false) { S.canWrite = false; $("banner").hidden = false; $("bannertext").textContent = "You have view-only access. Ask the owner for “Can interact” to enter prices."; render(); } });
+      u.id().then(function (id) { S.uid = id; });
+    }, function () {});
+    window.claude.use("downloads").then(function (d) { S.dl = d; if (S.tab === "compare") render(); }, function () {});
+    window.claude.use("assets").then(function (a) { S.assets = a; if (S.detail) render(); }, function () {});
+  } else boot(null);
+})();
+
+</script>
+
+</body></html>
