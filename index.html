@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Dish Cost Book</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
@@ -170,6 +170,7 @@ textarea{width:100%;min-height:110px;font-family:var(--mono);font-size:12px}
 <div id="drawerhost"></div>
 <div id="toasthost" aria-live="polite"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="data.js"></script>
 <script>
 /* Costing engine: pure functions, no DOM. Same maths as the verified spreadsheet. */
 function normName(s) {
@@ -324,7 +325,7 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
     tab: "dishes", db: null, user: null, dl: null, uid: null, canWrite: true,
     prices: {}, shardOf: {}, dishes: {}, updates: [], costs: {}, usedIn: {},
     settings: { vatRate: 0.07, vatIncluded: false, riceG: 20, riceRatio: 3, eggG: 65.6667, targetFc: 0.15, wastePct: 0.3, overheadPct: 0.3, priceRound: 5, batchSizes: [5, 10, 15], currency: "THB" },
-    batch: null, asWritten: false, assets: null, uploading: false,
+    batch: null, asWritten: false, assets: null, uploading: false, local: null, localImages: {}, packing: null,
     got: { prices: false, dishes: false },
     f: { q: "", menu: "", cuisine: "", type: "Dish", attn: false, sort: "name", ing: "" },
     pf: { q: "", show: "all" }, cmp: "cuisine",
@@ -364,7 +365,7 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
     else if (code === "quota_exceeded") toast("The database is full. Remove old dishes or update logs, then try again.");
     else toast("Could not save just now. Check your connection and try again.");
   }
-  function imgUrl(d) { return d && d.img ? "/_blob/" + d.img : null; }
+  function imgUrl(d) { if (!d) return null; if (S.local) return S.localImages[d.id] || null; return d.img ? "/_blob/" + d.img : null; }
   function thumb(d, cls) {
     var u = imgUrl(d);
     if (u) return '<img class="thumb ' + (cls || "") + '" src="' + esc(u) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;thumb ph&quot;>' + esc((d.cuisine || "?").charAt(0)) + '</div>\'">';
@@ -413,12 +414,18 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
     var old = d.img;
     updDish(id, { img: null, imgKind: null }).then(function () { if (S.assets) return S.assets.delete(old).catch(function () {}); }).then(function () { toast("Photo removed"); });
   }
+  /* Standalone copy (GitHub / a folder on a laptop): data comes from data.js, edits stay in this browser. */
+  function localSave() { try { localStorage.setItem("dcb-local-" + (S.local.exported || "x"), JSON.stringify(S.local.edits)); } catch (x) {} }
+  function localApplyDish(id, patch) { var d = S.dishes[id]; if (!d) return; Object.keys(patch).forEach(function (k) { if (patch[k] === null) delete d[k]; else d[k] = patch[k]; }); }
+  function localApplyPrices(byShard) { Object.keys(byShard).forEach(function (sh) { var items = byShard[sh]; Object.keys(items).forEach(function (k) { S.prices[k] = Object.assign({}, S.prices[k] || {}, items[k]); }); }); }
   function updDish(id, patch) {
+    if (S.local) { localApplyDish(id, patch); var e = S.local.edits; e.dishes[id] = Object.assign(e.dishes[id] || {}, patch); localSave(); recompute(); render(); return Promise.resolve(); }
     if (!S.db) return Promise.resolve();
     patch.editedAt = new Date().toISOString(); if (S.uid) patch.editedBy = S.uid;
     return enqueue("dishes/" + id, function () { return S.db.doc("dishes/" + id).update(patch); }).catch(writeErr);
   }
   function updPrices(byShard) {
+    if (S.local) { localApplyPrices(byShard); var e = S.local.edits; Object.keys(byShard).forEach(function (sh) { Object.keys(byShard[sh]).forEach(function (k) { e.prices[k] = Object.assign(e.prices[k] || {}, byShard[sh][k]); }); }); localSave(); recompute(); render(); return Promise.resolve(); }
     return Promise.all(Object.keys(byShard).map(function (sh) {
       return enqueue("prices/" + sh, function () {
         var ref = S.db.doc("prices/" + sh);
@@ -450,9 +457,9 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
     var body = document.querySelector(".drawer .body"), st = body ? body.scrollTop : 0;
     document.querySelectorAll(".tab").forEach(function (t) { t.setAttribute("aria-selected", t.dataset.tab === S.tab ? "true" : "false"); });
     var nD = Object.keys(S.dishes).length, nP = Object.keys(S.prices).length, nSub = Object.keys(S.dishes).filter(function (k) { return S.dishes[k].type === "Sub-recipe"; }).length;
-    $("brandsub").textContent = S.db === null && S.noDb ? "Open inside Claude to load data" : nD ? (nD - nSub) + " dishes · " + nSub + " batches · " + nP + " prices · " + S.settings.currency : "Loading costing data";
+    $("brandsub").textContent = S.db === null && S.noDb ? "Open inside Claude to load data" : nD ? (nD - nSub) + " dishes · " + nSub + " batches · " + nP + " prices · " + S.settings.currency + (S.local ? " · copy of " + String(S.local.exported || "").slice(0, 10) : "") : "Loading costing data";
     var v = $("view");
-    if (S.noDb) v.innerHTML = '<div class="empty"><h2>Open this page inside Claude</h2><p>The dishes and prices live in this page’s shared database, which is only available when the page is opened from Claude by someone in your organisation.</p></div>';
+    if (S.noDb) v.innerHTML = '<div class="empty"><h2>This copy has no data with it</h2><p>Inside Claude the dishes and prices come from the page\u2019s shared database. To use the book anywhere else, open it in Claude, go to Settings and press <b>Download shareable copy</b>: you get a folder with index.html, data.js and the photos. Open that index.html, or upload the whole folder to GitHub Pages or any web host.</p></div>';
     else if (!S.got.prices || !S.got.dishes) v.innerHTML = '<div class="empty">Loading dishes and prices</div>';
     else if (!nD) v.innerHTML = '<div class="empty"><h2>No dishes loaded yet</h2><p>Send your recipe workbook to Claude in chat and it will be checked and loaded here.</p></div>';
     else v.innerHTML = ({ dishes: vDishes, compare: vCompare, prices: vPrices, update: vUpdate, settings: vSettings })[S.tab]();
@@ -636,7 +643,7 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
     var names = Object.keys(groups).sort(function (a, b) { return avg(groups[b].tot) - avg(groups[a].tot); });
     var mx = Math.max.apply(null, names.map(function (k) { return avg(groups[k].tot); }).concat([0.01]));
     var h = '<div><h2>Food cost by ' + (field === "cuisine" ? "cuisine" : "menu") + '</h2><p class="lede">Dishes only; batches are left out. Food cost % uses each dish\'s selling price (the ' + pct(S.settings.targetFc, 0) + ' suggestion unless you have set your own). Portion sizes differ a lot between dishes, so food cost % is the fair comparison.</p></div>';
-    h += '<div class="toolbar"><select id="cmp-by" aria-label="Group by"><option value="cuisine"' + (field === "cuisine" ? " selected" : "") + '>Group by cuisine</option><option value="menu"' + (field === "menu" ? " selected" : "") + ">Group by menu</option></select>" + (S.dl ? '<button class="btn" data-act="csv">Export all dishes to CSV</button>' : "") + "</div>";
+    h += '<div class="toolbar"><select id="cmp-by" aria-label="Group by"><option value="cuisine"' + (field === "cuisine" ? " selected" : "") + '>Group by cuisine</option><option value="menu"' + (field === "menu" ? " selected" : "") + ">Group by menu</option></select>" + (S.dl || S.local ? '<button class="btn" data-act="csv">Export all dishes to CSV</button>' : "") + "</div>";
     h += '<div class="tablebox"><table><thead><tr><th>' + (field === "cuisine" ? "Cuisine" : "Menu") + '</th><th class="num">Dishes</th><th class="num">Avg loaded / portion</th><th class="num">Avg ingredients / portion</th><th class="hide-sm">Average, to scale</th><th class="num hide-sm">Lowest</th><th class="num hide-sm">Highest</th><th class="num hide-sm">Avg loaded ' + esc(curBatch()) + ' L batch</th><th class="num">Priced</th><th class="num">Avg food cost %</th><th class="num hide-sm">Avg loaded %</th><th class="num">Avg margin</th></tr></thead><tbody>';
     function row(label, g, strong) {
       var a = avg(g.tot);
@@ -798,6 +805,7 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
     updPrices(by).then(function () {
       var log = { at: new Date().toISOString(), label: label, changed: changed, added: added, movers: mv.slice(0, 12).map(function (m) { return { id: m.id, name: m.name, before: +m.before.toFixed(4), after: +m.after.toFixed(4), ch: +m.ch.toFixed(4) }; }) };
       if (S.uid) log.by = S.uid;
+      if (S.local) { S.updates.unshift(log); S.local.edits.updates.unshift(log); localSave(); return; }
       return S.db.collection("updates").add(log);
     }).then(function () {
       S.wiz = { step: 4, done: changed + " prices changed and " + added + " ingredients added from “" + label + "”. " + mv.length + " dishes were re-costed." }; render(); toast("Prices updated");
@@ -817,6 +825,8 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
       '<div class="field"><label for="s-batches">Batch sizes (L)</label><input id="s-batches" data-set="batchSizes" value="' + esc((s.batchSizes || [5, 10, 15]).join(", ")) + '"' + dis() + "><small>Comma-separated; 1 L scaled as 1 kg of raw ingredients</small></div>" +
       '<div class="field"><label for="s-ratio">Cooked rice from 1 g raw (g)</label><input id="s-ratio" data-set="riceRatio" inputmode="decimal" value="' + esc(s.riceRatio || 3) + '"' + dis() + "><small>Master note: rice triples when cooked, so a 60 g cooked serve costs 20 g of raw rice</small></div>" +
       '<div class="field"><label for="s-egg">Egg weight (g per piece)</label><input id="s-egg" data-set="eggG" inputmode="decimal" value="' + esc(s.eggG) + '"' + dis() + "></div></div></div>" +
+      (S.local ? '<div class="panel"><h3>This is a standalone copy</h3><p class="lede">Exported from the Dish Cost Book on ' + esc(String(S.local.exported || "").slice(0, 10)) + '. Prices, portions and selling prices you change here are kept in this browser only; nobody else sees them and the Claude book is not updated. To get a fresh copy, ask for a new export.</p><div><button class="btn danger" data-act="localreset">Discard my local changes</button></div></div>' :
+       (S.dl ? '<div class="panel"><h3>Share outside Claude</h3><p class="lede">Download a standalone copy: a folder with this page, the data and the photos. Anyone can open its index.html in a browser, or you can put the folder on GitHub Pages or any web host. The copy is a snapshot: it does not update itself, and changes people make in it stay in their own browser.</p><div><button class="btn primary" data-act="packzip"' + (S.packing ? " disabled" : "") + '>' + (S.packing ? esc(S.packing) : "Download shareable copy (.zip)") + '</button></div></div>' : "")) +
       '<div class="panel"><h3>How costs are worked out</h3><p class="lede">Line cost is quantity × price. Where a recipe is written in grams and the price is per litre, the density on the Prices tab converts it; with no density on file the line is treated 1:1 and flagged. Cost per portion is batch cost \u00f7 yield \u00d7 portion size, plus anything served with it. Loaded cost adds waste and spoilage, then overhead on top. Suggested price = loaded cost \u00f7 target food cost %. Food cost % is shown after loading, against the target; the ingredient-only figure is in each dish. Sub-recipes feed dishes at their ingredient cost per gram.</p><p class="lede">New menus: send the recipe workbook to Claude in chat. It is checked for errors, then loaded here.</p><p class="lede">Beverages: bottles are priced per ml from their pack size (a 25 oz label is read as the 750 ml bottle, 23 oz as 700 ml, 12 oz as 350 ml); cans and bottled water are priced per can or bottle. The Prices tab shows the cost of a 30 ml pour beside each liquid.</p></div>';
   }
 
@@ -867,6 +877,8 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
       updDish(d.id, { sides: (d.sides || []).concat([side]) }).then(function () { toast("Added " + side.label); });
     }
     else if (a === "csv") exportCsv();
+    else if (a === "packzip") packZip();
+    else if (a === "localreset") { if (confirm("Discard every change made in this browser and go back to the exported data?")) { try { localStorage.removeItem("dcb-local-" + (S.local.exported || "x")); } catch (x) {} location.reload(); } }
     else if (a === "wreset") { S.wiz = { step: 1 }; render(); }
     else if (a === "wback") { S.wiz.step = 2; render(); }
     else if (a === "wpaste") {
@@ -923,6 +935,7 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && S.detail) { S.detail = null; S.edit = null; render(); } });
   function saveSettings(patch) {
+    if (S.local) { S.settings = Object.assign({}, S.settings, patch); Object.assign(S.local.edits.settings, patch); localSave(); recompute(); render(); return; }
     if (!S.db) return;
     enqueue("settings/main", function () { var ref = S.db.doc("settings/main"); return ref.update(patch).catch(function (e) { if (e && e.code === "invalid_argument") return ref.set(Object.assign({}, S.settings, patch)); throw e; }); }).catch(writeErr);
   }
@@ -945,14 +958,57 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
     var q = function (x) { x = x == null ? "" : String(x); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; }, r = function (x, d) { return x == null ? "" : (+x).toFixed(d == null ? 2 : d); };
     var rows = [["ID", "Menu", "Cuisine", "Dish", "Type", "Batch size L", "Batch loaded cost", "Batch ingredient cost", "Portions per batch", "Portion g", "Loaded cost per portion", "Suggested price", "Total ingredient cost per portion", "Dish-only cost per portion", "Rice add-on", "Other add-ons", "Selling price", "Price set by", "Net selling price", "Food cost %", "Loaded food cost %", "Gross profit", "Gross margin %", "Gross margin % after loading"]];
     Object.keys(S.dishes).sort().forEach(function (id) { var d = S.dishes[id], c = S.costs[id]; rows.push([id, d.menu, d.cuisine, d.name, d.type, curBatch(), r(c.ing * bfOf(c) * (1 + c.loading)), r(c.ing * bfOf(c)), r(c.portions * bfOf(c), 1), d.portion, r(c.loaded), r(c.suggested, 0), r(c.total), r(c.perPortion), r(c.rice), r(c.addons), r(c.sell, 0), c.sellDefault ? "suggested" : "you", r(c.net), c.fc == null ? "" : r(c.fc * 100, 1), c.fcLoaded == null ? "" : r(c.fcLoaded * 100, 1), r(c.gp), c.gm == null ? "" : r(c.gm * 100, 1), c.gmLoaded == null ? "" : r(c.gmLoaded * 100, 1)]); });
-    S.dl.save({ filename: "dish-costs-" + today() + ".csv", data: "﻿" + rows.map(function (x) { return x.map(q).join(","); }).join("\r\n") }).catch(function (e) { if (e && e.code !== "declined") toast("The export could not be saved here."); });
+    var csv = "\ufeff" + rows.map(function (x) { return x.map(q).join(","); }).join("\r\n"), fn = "dish-costs-" + today() + ".csv";
+    if (S.dl) S.dl.save({ filename: fn, data: csv }).catch(function (e) { if (e && e.code !== "declined") toast("The export could not be saved here."); });
+    else plainDownload(fn, new Blob([csv], { type: "text/csv" }));
   }
 
   /* ---------- boot ---------- */
   function subErr() { $("banner").hidden = false; $("bannertext").textContent = "Live updates stopped. Reload the page to reconnect."; }
+  function plainDownload(fn, blob) { var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = fn; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000); }
+  function bootLocal(data) {
+    S.local = { exported: data.exported || "", edits: { dishes: {}, prices: {}, settings: {}, updates: [] } };
+    try { var saved = JSON.parse(localStorage.getItem("dcb-local-" + (S.local.exported || "x")) || "null"); if (saved && saved.dishes) S.local.edits = Object.assign({ dishes: {}, prices: {}, settings: {}, updates: [] }, saved); } catch (x) {}
+    S.prices = JSON.parse(JSON.stringify(data.prices || {})); S.dishes = JSON.parse(JSON.stringify(data.dishes || {}));
+    Object.keys(S.dishes).forEach(function (id) { S.dishes[id].id = id; });
+    S.settings = Object.assign({}, S.settings, data.settings || {}); S.updates = (data.updates || []).slice(); S.localImages = data.images || {};
+    var e = S.local.edits;
+    Object.keys(e.dishes).forEach(function (id) { localApplyDish(id, e.dishes[id]); });
+    Object.keys(e.prices).forEach(function (k) { S.prices[k] = Object.assign({}, S.prices[k] || {}, e.prices[k]); });
+    S.settings = Object.assign({}, S.settings, e.settings || {}); S.updates = (e.updates || []).concat(S.updates);
+    S.got.prices = S.got.dishes = true; S.canWrite = true;
+    $("banner").hidden = false; $("bannertext").textContent = "Standalone copy from " + String(S.local.exported || "").slice(0, 10) + ". Changes you make here stay in this browser only.";
+    recompute(); render();
+  }
+  function loadScript(src) { return new Promise(function (res, rej) { var sc = document.createElement("script"); sc.src = src; sc.onload = res; sc.onerror = function () { rej(new Error("load")); }; document.head.appendChild(sc); }); }
+  function packZip() {
+    if (S.packing || !S.dl) return;
+    var tpl = window.DCB_TEMPLATE; if (!tpl) return toast("This version cannot build a copy; ask for a republish.");
+    S.packing = "Preparing\u2026"; render();
+    var ready = typeof JSZip !== "undefined" ? Promise.resolve() : loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    ready.then(function () {
+      var zip = new JSZip(), images = {}, ids = Object.keys(S.dishes).filter(function (id) { return S.dishes[id].img; }), done = 0, failed = 0;
+      var next = function () {
+        if (!ids.length) return Promise.resolve();
+        var id = ids.shift();
+        return fetch("/_blob/" + S.dishes[id].img).then(function (r) { if (!r.ok) throw new Error("http"); return r.blob(); }).then(function (b) { zip.file("img/" + id + ".jpg", b); images[id] = "img/" + id + ".jpg"; }, function () { failed++; }).then(function () { done++; S.packing = "Packing photos " + done + " of " + (done + ids.length) + "\u2026"; var btn = document.querySelector('[data-act="packzip"]'); if (btn) btn.textContent = S.packing; return next(); });
+      };
+      return next().then(function () {
+        var dishes = {}; Object.keys(S.dishes).forEach(function (id) { var d = Object.assign({}, S.dishes[id]); delete d.img; delete d.id; dishes[id] = d; });
+        var data = { exported: new Date().toISOString(), prices: S.prices, dishes: dishes, settings: S.settings, updates: S.updates.slice(0, 25), images: images };
+        zip.file("data.js", "window.DCB_DATA = " + JSON.stringify(data) + ";\n");
+        zip.file("index.html", tpl);
+        zip.file("README.txt", "Dish Cost Book - standalone copy exported " + data.exported.slice(0, 10) + "\n\nOpen index.html in any browser, or upload this whole folder (index.html, data.js and the img folder together) to GitHub Pages or any web host.\nThe copy is a snapshot of the Claude book on the export date. Changes made in it stay in the browser that made them.\n" + (failed ? failed + " photos could not be packed.\n" : ""));
+        S.packing = "Zipping\u2026"; var btn = document.querySelector('[data-act="packzip"]'); if (btn) btn.textContent = S.packing;
+        return zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+      }).then(function (blob) {
+        return S.dl.save({ filename: "dish-cost-book-" + today() + ".zip", data: blob });
+      }).then(function () { toast("Copy downloaded" + (failed ? " (" + failed + " photos missing)" : "")); }, function (e) { if (!e || e.code !== "declined") toast("The copy could not be built: " + (e && (e.message || e.code) || "error")); });
+    }, function () { toast("Could not load the zip library. Check the connection and try again."); }).then(function () { S.packing = null; render(); });
+  }
   function boot(db) {
     S.db = db;
-    if (!db) { S.noDb = true; render(); return; }
+    if (!db) { if (window.DCB_DATA) return bootLocal(window.DCB_DATA); S.noDb = true; render(); return; }
     db.collection("prices").onSnapshot(function (snap) {
       var all = {}, sh = {};
       snap.docs.forEach(function (doc) { var items = (doc.data() || {}).items || {}; Object.keys(items).forEach(function (k) { if (items[k] && typeof items[k] === "object") { all[k] = items[k]; sh[k] = doc.id; } }); });
@@ -978,5 +1034,4 @@ if (typeof module !== "undefined") module.exports = { normName: normName, lineFa
 })();
 
 </script>
-
 </body></html>
